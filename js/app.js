@@ -63,7 +63,7 @@ new Vue({
     dashboardFilter: 'ytd',
     dashTableFilterTipo: '',
     dashTableFilterGrupo: '',
-
+    
     tesoreriaSelectedDefaultSources: ['Nequi', 'Daviplata', 'Cash', 'Bbva Libreton #1782'],
     tesoreriaSelectedSources: [],
 
@@ -72,6 +72,38 @@ new Vue({
 
     saldosReales: {},
     isSavingAjuste: {},
+
+    // =====================================================
+    // PROYECCIÓN / ESTADO BASE
+    // =====================================================
+    isLoadingProjection: false,
+    isSyncingProjectionBackground: false,
+    isSavingProjection: false,
+    projectionSaveSuccess: false,
+
+    dbProjectionBudget: [],
+    dbProjectionExecution: [],
+
+    projectionFilters: {
+      periodo: 'mes',
+      tipo: '',
+      grupo: '',
+      categoria: '',
+      tercero: '',
+      search: ''
+    },
+
+    projectionDrafts: {},
+    projectionEditingRows: {},
+    projectionDeletedRows: {},
+    projectionTasks: {},
+
+    projectionCopyModal: {
+      show: false,
+      targetDate: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' })
+    },
+
+    projectionCopyPreview: [],
 
     chartPygInstance: null,
     chartPasivosInstance: null,
@@ -751,7 +783,391 @@ new Vue({
 
         return mSearch && mTipo && mGrupo && mCat && mTer && mMedio;
       });
-    }
+    },
+    
+    
+    // =====================================================
+    // PROYECCIÓN / OPCIONES DE FILTRO
+    // =====================================================
+    projectionTiposOptions() {
+      return [...new Set(this.dbTablaPG.map(item => item.tipo))].filter(Boolean).sort();
+    },
+
+    projectionGruposFilterOptions() {
+      let base = this.dbTablaPG;
+
+      if (this.projectionFilters.tipo) {
+        base = base.filter(item => item.tipo === this.projectionFilters.tipo);
+      }
+
+      return [...new Set(base.map(item => item.grupo))].filter(Boolean).sort();
+    },
+
+    projectionCategoriasFilterOptions() {
+      let base = this.dbTablaPG;
+
+      if (this.projectionFilters.tipo) {
+        base = base.filter(item => item.tipo === this.projectionFilters.tipo);
+      }
+
+      if (this.projectionFilters.grupo) {
+        base = base.filter(item => item.grupo === this.projectionFilters.grupo);
+      }
+
+      return [...new Set(base.map(item => item.categoria))].filter(Boolean).sort();
+    },
+
+    // =====================================================
+    // PROYECCIÓN / PERIODO ACTUAL
+    // =====================================================
+    projectionCurrentPeriodLabel() {
+      const map = {
+        mes: 'Mes actual',
+        mes_anterior: 'Mes anterior',
+        ytd: 'Año a la fecha',
+        año: 'Año actual',
+        año_anterior: 'Año anterior',
+        '': 'Todo'
+      };
+
+      return map[this.projectionFilters.periodo] || 'Periodo';
+    },
+
+    // =====================================================
+    // PROYECCIÓN / PRESUPUESTO EFECTIVO
+    // Mezcla BD real + tareas pendientes para simular en línea
+    // =====================================================
+    projectionEffectiveBudgetRows() {
+      let rows = this.dbProjectionBudget
+        .filter(item => (item.estado || 'h') !== 'n')
+        .map(item => ({ ...item }));
+
+      const tasks = Object.values(this.projectionTasks || {});
+
+      tasks.forEach(task => {
+        if (task.action === 'create') {
+          rows.push({
+            idx: '',
+            id: '',
+            _pending: true,
+            _pendingCreate: true,
+            _rowKey: task.rowKey,
+            ...(task.record || {})
+          });
+        }
+
+        if (task.action === 'update') {
+          const index = rows.findIndex(item =>
+            String(item.idx || item.id) === String(task.id)
+          );
+
+          if (index !== -1) {
+            rows.splice(index, 1, {
+              ...rows[index],
+              ...(task.record || {}),
+              _pending: true,
+              _rowKey: task.rowKey
+            });
+          }
+        }
+
+        if (task.action === 'delete') {
+          const index = rows.findIndex(item =>
+            String(item.idx || item.id) === String(task.id)
+          );
+
+          if (index !== -1) {
+            rows.splice(index, 1, {
+              ...rows[index],
+              _pendingDelete: true,
+              _rowKey: task.rowKey
+            });
+          }
+        }
+      });
+
+      return rows;
+    },
+
+    // =====================================================
+    // PROYECCIÓN / TABLA COMPARATIVA FLUJO DE CAJA
+    // Match por: tipo + grupo + categoria + tercero + flujo
+    // =====================================================
+    projectionTableRows() {
+      const range = this.getProjectionDateRange(this.projectionFilters.periodo);
+
+      const budgetRows = this.projectionEffectiveBudgetRows.filter(item => {
+        if ((item.estado || 'h') === 'n') return false;
+        return this.isProjectionDateInRange(item.fecha_ejecucion, range);
+      });
+
+      const executionRows = this.dbProjectionExecution.filter(item => {
+        if ((item.estado || 'h') === 'n') return false;
+        const f = item.fecha_registro || item.fecha_registration || item.fecha_pago || item.fecha_payment;
+        return this.isProjectionDateInRange(f, range);
+      });
+
+      const rows = [];
+      const budgetByFull = {};
+      const budgetByCategory = {};
+      const budgetByGroup = {};
+      const hasBudgetByCategory = {};
+
+      budgetRows.forEach(item => {
+        const rawValue = Number(item.valor) || 0;
+        const flujo = this.getProjectionFlowDirection(item.tipo, rawValue);
+        const key = item._rowKey || ('b-' + (item.idx || item.id));
+
+        const row = {
+          key: key,
+          budgetId: item._pendingCreate ? null : (item.idx || item.id),
+          isVirtual: false,
+          isPendingCreate: !!item._pendingCreate,
+
+          fecha_ejecucion: item.fecha_ejecucion || '',
+          tipo: item.tipo || '',
+          flujo: flujo,
+          grupo: item.grupo || '',
+          categoria: item.categoria || '',
+          tercero: item.tercero || '',
+          descripcion: item.descripcion || '',
+
+          valor_original: rawValue,
+          presupuesto: this.getProjectionComparableValue(item.tipo, rawValue),
+          ejecutado: 0,
+          detalle: []
+        };
+
+        rows.push(row);
+
+        // Si está eliminado en tareas pendientes, se ve en tabla,
+        // pero NO participa como presupuesto activo para asignar ejecución.
+        if (item._pendingDelete) {
+          return;
+        }
+
+        const groupKey = this.buildProjectionMatchKey(row.tipo, row.grupo, '', '', row.flujo);
+        const catKey = this.buildProjectionMatchKey(row.tipo, row.grupo, row.categoria, '', row.flujo);
+        const fullKey = this.buildProjectionMatchKey(row.tipo, row.grupo, row.categoria, row.tercero, row.flujo);
+
+        if (row.categoria) {
+          hasBudgetByCategory[catKey] = true;
+        }
+
+        if (row.categoria && row.tercero) {
+          budgetByFull[fullKey] = row;
+        } else if (row.categoria) {
+          budgetByCategory[catKey] = row;
+        } else {
+          budgetByGroup[groupKey] = row;
+        }
+      });
+
+      const virtualRows = {};
+
+      executionRows.forEach(item => {
+        const tipo = item.tipo || '';
+        const grupo = item.grupo || '';
+        const categoria = item.categoria || '';
+        const tercero = item.tercero || '';
+        const rawValue = Number(item.valor) || 0;
+
+        const flujo = this.getProjectionFlowDirection(tipo, rawValue);
+        const valor = this.getProjectionComparableValue(tipo, rawValue);
+
+        const fullKey = this.buildProjectionMatchKey(tipo, grupo, categoria, tercero, flujo);
+        const catKey = this.buildProjectionMatchKey(tipo, grupo, categoria, '', flujo);
+        const groupKey = this.buildProjectionMatchKey(tipo, grupo, '', '', flujo);
+
+        let target = null;
+
+        if (budgetByFull[fullKey]) {
+          target = budgetByFull[fullKey];
+        } else if (budgetByCategory[catKey]) {
+          target = budgetByCategory[catKey];
+        } else if (budgetByGroup[groupKey]) {
+          target = budgetByGroup[groupKey];
+        }
+
+        if (target) {
+          target.ejecutado += valor;
+          target.detalle.push(item);
+          return;
+        }
+
+        const virtualCat = hasBudgetByCategory[catKey] ? categoria : 'No presupuestado';
+        const virtualTer = hasBudgetByCategory[catKey] ? 'No presupuestado' : '';
+
+        const virtualKey = 'u-' + this.buildProjectionMatchKey(tipo, grupo, virtualCat, virtualTer, flujo);
+
+        if (!virtualRows[virtualKey]) {
+          virtualRows[virtualKey] = {
+            key: virtualKey,
+            budgetId: null,
+            isVirtual: true,
+
+            fecha_ejecucion: '',
+            tipo: tipo,
+            flujo: flujo,
+            grupo: grupo,
+            categoria: virtualCat,
+            tercero: virtualTer,
+            descripcion: 'Ejecución sin presupuesto',
+
+            valor_original: 0,
+            presupuesto: 0,
+            ejecutado: 0,
+            detalle: []
+          };
+        }
+
+        virtualRows[virtualKey].ejecutado += valor;
+        virtualRows[virtualKey].detalle.push(item);
+      });
+
+      Object.values(virtualRows).forEach(row => {
+        rows.push(row);
+      });
+
+      return rows.map(row => {
+        const porcentaje = row.presupuesto > 0
+          ? (row.ejecutado / row.presupuesto) * 100
+          : (row.ejecutado > 0 ? 999 : 0);
+
+        const diferencia = row.ejecutado - row.presupuesto;
+
+        return {
+          ...row,
+          porcentaje: porcentaje,
+          porcentajeLabel: row.presupuesto > 0
+            ? porcentaje.toFixed(1) + '%'
+            : (row.ejecutado > 0 ? 'Sin ppto' : '0.0%'),
+          diferencia: diferencia,
+          alerta: this.getProjectionAlert(row.flujo, porcentaje, row.presupuesto, row.ejecutado)
+        };
+      }).sort((a, b) => {
+        // Las filas nuevas pendientes siempre arriba
+        if (a.isPendingCreate && !b.isPendingCreate) return -1;
+        if (!a.isPendingCreate && b.isPendingCreate) return 1;
+
+        // Si ambas son nuevas, la más reciente primero
+        if (a.isPendingCreate && b.isPendingCreate) {
+          const aTime = Number(String(a.key).replace('new-', '')) || 0;
+          const bTime = Number(String(b.key).replace('new-', '')) || 0;
+          return bTime - aTime;
+        }
+
+        // Luego mantenemos el orden financiero normal
+        if (a.flujo !== b.flujo) {
+          return a.flujo === 'salida' ? -1 : 1;
+        }
+
+        if (a.tipo !== b.tipo) return a.tipo.localeCompare(b.tipo);
+        if (a.grupo !== b.grupo) return a.grupo.localeCompare(b.grupo);
+
+        return Math.abs(b.ejecutado) - Math.abs(a.ejecutado);
+      });
+    },
+
+    // =====================================================
+    // PROYECCIÓN / TABLA FILTRADA
+    // =====================================================
+    projectionTableRowsFiltered() {
+      return this.projectionTableRows.filter(row => {
+        const f = this.projectionFilters;
+
+        if (f.tipo && row.tipo !== f.tipo) return false;
+        if (f.grupo && row.grupo !== f.grupo) return false;
+        if (f.categoria && row.categoria !== f.categoria) return false;
+        if (f.tercero && row.tercero !== f.tercero) return false;
+
+        const s = (f.search || '').toLowerCase().trim();
+
+        if (s) {
+          const text = [
+            row.tipo,
+            row.grupo,
+            row.categoria,
+            row.tercero,
+            row.descripcion
+          ].join(' ').toLowerCase();
+
+          if (!text.includes(s)) return false;
+        }
+
+        return true;
+      });
+    },
+
+    // =====================================================
+    // PROYECCIÓN / TOTALES FLUJO DE CAJA
+    // =====================================================
+    projectionTotals() {
+      const totals = this.projectionTableRowsFiltered.reduce((acc, row) => {
+        if (this.projectionDeletedRows[row.key]) return acc;
+
+        const presupuesto = Number(row.presupuesto) || 0;
+        const ejecutado = Number(row.ejecutado) || 0;
+
+        if (row.flujo === 'entrada') {
+          acc.presupuestoEntradas += presupuesto;
+          acc.ejecutadoEntradas += ejecutado;
+        } else {
+          acc.presupuestoSalidas += presupuesto;
+          acc.ejecutadoSalidas += ejecutado;
+        }
+
+        if (row.isVirtual && row.flujo === 'salida') {
+          acc.noPresupuestadoSalida += ejecutado;
+          acc.noPresupuestadoSalidaItems += 1;
+        }
+
+        if (row.isVirtual && row.flujo === 'entrada') {
+          acc.noPresupuestadoEntrada += ejecutado;
+          acc.noPresupuestadoEntradaItems += 1;
+        }
+
+        if (row.alerta && row.alerta.level === 'danger') {
+          acc.alertas += 1;
+        }
+
+        return acc;
+      }, {
+        presupuestoEntradas: 0,
+        ejecutadoEntradas: 0,
+
+        presupuestoSalidas: 0,
+        ejecutadoSalidas: 0,
+
+        noPresupuestadoSalida: 0,
+        noPresupuestadoSalidaItems: 0,
+
+        noPresupuestadoEntrada: 0,
+        noPresupuestadoEntradaItems: 0,
+
+        alertas: 0
+      });
+
+      totals.netoPresupuesto = totals.presupuestoEntradas - totals.presupuestoSalidas;
+      totals.netoEjecutado = totals.ejecutadoEntradas - totals.ejecutadoSalidas;
+      totals.diferenciaNeto = totals.netoEjecutado - totals.netoPresupuesto;
+
+      // Alias de compatibilidad por si algo del HTML anterior todavía los usa
+      totals.presupuesto = totals.presupuestoSalidas;
+      totals.ejecutado = totals.ejecutadoSalidas;
+      totals.diferencia = totals.ejecutadoSalidas - totals.presupuestoSalidas;
+      totals.noPresupuestado = totals.noPresupuestadoSalida;
+      totals.noPresupuestadoItems = totals.noPresupuestadoSalidaItems;
+
+      return totals;
+    },
+
+    // =====================================================
+    // PROYECCIÓN / TAREAS PENDIENTES
+    // =====================================================
+    projectionPendingTasksList() {
+      return Object.values(this.projectionTasks);
+    },
   },
 
   watch: {
@@ -1207,6 +1623,10 @@ new Vue({
             this.isLoadingList = true;
           }
 
+          if (this.activeView === 'proyeccion') {
+            this.isLoadingProjection = true;
+          }
+
           this.isAuthenticated = true;
 
           if (this.activeView === 'dashboard') {
@@ -1219,6 +1639,10 @@ new Vue({
 
             if (this.activeView === 'tesoreria' || this.activeView === 'lista') {
               await this.fetchListData();
+            }
+
+            if (this.activeView === 'proyeccion') {
+              await this.fetchProjectionData();
             }
           }
 
@@ -1615,6 +2039,762 @@ new Vue({
 
       // 2. formatear resultado
       return this.formatInput(calculado);
+    },
+
+    // =====================================================
+    // PROYECCIÓN / APERTURA DEL MÓDULO
+    // =====================================================
+    async openProyeccion() {
+      this.activeView = 'proyeccion';
+
+      if (!this.isDesktopView) {
+        this.showSidebar = false;
+      }
+
+      if (!this.dbTablaPG.length || !this.dbTerceros.length) {
+        this.fetchFormData();
+      }
+
+      await this.fetchProjectionData();
+    },
+
+    // =====================================================
+    // PROYECCIÓN / CARGA REAL DE DATOS
+    // Carga primero año actual y luego histórico en background
+    // =====================================================
+    async fetchProjectionData(silent = false) {
+      if (!silent) {
+        this.isLoadingProjection = true;
+        this.dbProjectionBudget = [];
+        this.dbProjectionExecution = [];
+      } else {
+        this.isSyncingProjectionBackground = true;
+      }
+
+      try {
+        const response1 = await apiGet('getProjectionData', {
+          onlyCurrentYear: true
+        });
+
+        console.group('PROYECCIÓN / FETCH AÑO ACTUAL');
+        console.log('Response current year:', response1);
+        console.table(response1.data && response1.data.budget ? response1.data.budget : []);
+        console.groupEnd();
+
+        if (!response1.success) {
+          this.failedErrorMessage = response1.message || 'No se pudo cargar la proyección';
+          this.showErrorModal = true;
+          return;
+        }
+
+        this.dbProjectionBudget = response1.data.budget || [];
+        this.dbProjectionExecution = response1.data.execution || [];
+
+        if (!silent) {
+          this.isLoadingProjection = false;
+        }
+
+        this.isSyncingProjectionBackground = true;
+
+        const response2 = await apiGet('getProjectionData', {
+          onlyCurrentYear: false
+        });
+
+        console.group('PROYECCIÓN / FETCH HISTÓRICO');
+        console.log('Response histórico:', response2);
+        console.table(response2.data && response2.data.budget ? response2.data.budget : []);
+        console.groupEnd();
+
+        if (response2.success) {
+          this.dbProjectionBudget = response2.data.budget || [];
+          this.dbProjectionExecution = response2.data.execution || [];
+        } else {
+          console.warn('No se pudo cargar histórico de proyección:', response2.message);
+        }
+
+      } catch (error) {
+        console.error(error);
+        this.failedErrorMessage = 'Error de conexión cargando datos de proyección';
+        this.showErrorModal = true;
+      } finally {
+        this.isLoadingProjection = false;
+        this.isSyncingProjectionBackground = false;
+      }
+    },
+
+    // =====================================================
+    // PROYECCIÓN / FECHAS Y KEYS
+    // =====================================================
+    getProjectionDateRange(periodo) {
+      const today = new Date();
+      const y = today.getFullYear();
+      const m = today.getMonth();
+      const d = today.getDate();
+
+      let start = null;
+      let end = null;
+
+      switch (periodo) {
+        case 'mes':
+          start = new Date(y, m, 1);
+          end = new Date(y, m + 1, 0);
+          break;
+
+        case 'mes_anterior':
+          start = new Date(y, m - 1, 1);
+          end = new Date(y, m, 0);
+          break;
+
+        case 'ytd':
+          start = new Date(y, 0, 1);
+          end = new Date(y, m, d);
+          break;
+
+        case 'año':
+          start = new Date(y, 0, 1);
+          end = new Date(y, 11, 31);
+          break;
+
+        case 'año_anterior':
+          start = new Date(y - 1, 0, 1);
+          end = new Date(y - 1, 11, 31);
+          break;
+
+        default:
+          return { start: null, end: null };
+      }
+
+      start.setHours(0, 0, 0, 0);
+      end.setHours(23, 59, 59, 999);
+
+      return { start, end };
+    },
+
+    // =====================================================
+    // PROYECCIÓN / FECHA DEFAULT PARA NUEVO PRESUPUESTO
+    // Usa una fecha dentro del periodo visible
+    // =====================================================
+    getProjectionDefaultBudgetDate() {
+      const range = this.getProjectionDateRange(this.projectionFilters.periodo);
+
+      if (range && range.start) {
+        return range.start.toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
+      }
+
+      return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
+    },
+
+    isProjectionDateInRange(dateStr, range) {
+      if (!range || (!range.start && !range.end)) return true;
+      if (!dateStr) return false;
+
+      const d = new Date(dateStr + 'T00:00:00');
+
+      return d >= range.start && d <= range.end;
+    },
+
+    getProjectionMonthRangeFromDate(dateStr) {
+      const d = new Date(dateStr + 'T00:00:00');
+      const start = new Date(d.getFullYear(), d.getMonth(), 1);
+      const end = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+
+      start.setHours(0, 0, 0, 0);
+      end.setHours(23, 59, 59, 999);
+
+      return { start, end };
+    },
+
+    normalizeProjectionValue(value) {
+      return String(value || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim();
+    },
+
+    // =====================================================
+    // PROYECCIÓN / KEY DE COMPARACIÓN
+    // Incluye flujo para no mezclar entradas con salidas
+    // =====================================================
+    buildProjectionMatchKey(tipo, grupo, categoria, tercero, flujo) {
+      return [
+        this.normalizeProjectionValue(tipo),
+        this.normalizeProjectionValue(grupo),
+        this.normalizeProjectionValue(categoria),
+        this.normalizeProjectionValue(tercero),
+        this.normalizeProjectionValue(flujo)
+      ].join('|');
+    },
+
+    // =====================================================
+    // PROYECCIÓN / SENTIDO DEL FLUJO DE CAJA
+    // =====================================================
+    getProjectionFlowDirection(tipo, valor) {
+      const tipoNorm = this.normalizeProjectionValue(tipo);
+      const num = Number(valor) || 0;
+
+      // Ingreso siempre es entrada, incluso si viene negativo
+      if (tipoNorm === 'ingreso') {
+        return 'entrada';
+      }
+
+      // Gasto siempre es salida, incluso si viene negativo
+      if (tipoNorm === 'gasto') {
+        return 'salida';
+      }
+
+      // Activo positivo = constitución/aumento = salida
+      // Activo negativo = reintegro/retiro = entrada
+      if (tipoNorm === 'activo') {
+        return num < 0 ? 'entrada' : 'salida';
+      }
+
+      // Pasivo positivo = entrada de caja por deuda
+      // Pasivo negativo = pago/disminución de deuda = salida
+      if (tipoNorm === 'pasivo') {
+        return num < 0 ? 'salida' : 'entrada';
+      }
+
+      return 'salida';
+    },
+
+    getProjectionFlowLabel(flujo) {
+      return flujo === 'entrada' ? 'Entrada' : 'Salida';
+    },
+
+    getProjectionFlowBadgeClass(flujo) {
+      if (flujo === 'entrada') {
+        return 'bg-green-100 text-green-700';
+      }
+
+      return 'bg-red-100 text-red-700';
+    },
+
+    // =====================================================
+    // PROYECCIÓN / VALOR COMPARABLE
+    // Para comparar presupuesto vs ejecución usamos magnitud.
+    // El sentido real lo define getProjectionFlowDirection().
+    // =====================================================
+    getProjectionComparableValue(tipo, valor) {
+      const num = Number(valor) || 0;
+      return Math.abs(num);
+    },
+
+
+    // =====================================================
+    // PROYECCIÓN / ALERTAS POR FLUJO
+    // Entrada: más ejecución es bueno.
+    // Salida: pasarse del presupuesto es malo.
+    // =====================================================
+    getProjectionAlert(flujo, porcentaje, presupuesto, ejecutado) {
+      if (!presupuesto && ejecutado > 0) {
+        if (flujo === 'entrada') {
+          return {
+            level: 'ok',
+            label: 'Entrada extra',
+            className: 'bg-green-100 text-green-700',
+            barClass: 'bg-green-400'
+          };
+        }
+
+        return {
+          level: 'danger',
+          label: 'Sin ppto',
+          className: 'bg-red-600 text-white shadow-sm',
+          barClass: 'bg-red-600'
+        };
+      }
+
+      if (!presupuesto && !ejecutado) {
+        return {
+          level: 'neutral',
+          label: '0%',
+          className: 'bg-gray-100 text-gray-500',
+          barClass: 'bg-gray-300'
+        };
+      }
+
+      // Entradas: alcanzar o superar presupuesto es positivo
+      if (flujo === 'entrada') {
+        if (porcentaje >= 100) {
+          return {
+            level: 'ok',
+            label: 'OK',
+            className: 'bg-green-100 text-green-700',
+            barClass: 'bg-green-400'
+          };
+        }
+
+        if (porcentaje >= 90) {
+          return {
+            level: 'warning',
+            label: 'Cerca',
+            className: 'bg-orange-100 text-orange-700',
+            barClass: 'bg-orange-400'
+          };
+        }
+
+        return {
+          level: 'danger',
+          label: 'Bajo',
+          className: 'bg-red-100 text-red-700',
+          barClass: 'bg-red-400'
+        };
+      }
+
+      // Salidas: consumir menos presupuesto es positivo
+      if (porcentaje < 70) {
+        return {
+          level: 'ok',
+          label: 'Verde',
+          className: 'bg-green-100 text-green-700',
+          barClass: 'bg-green-400'
+        };
+      }
+
+      if (porcentaje < 95) {
+        return {
+          level: 'warning',
+          label: 'Naranja',
+          className: 'bg-orange-100 text-orange-700',
+          barClass: 'bg-orange-400'
+        };
+      }
+
+      if (porcentaje <= 110) {
+        return {
+          level: 'danger',
+          label: 'Rojo',
+          className: 'bg-red-100 text-red-700',
+          barClass: 'bg-red-400'
+        };
+      }
+
+      return {
+        level: 'danger',
+        label: 'Crítico',
+        className: 'bg-red-600 text-white shadow-sm',
+        barClass: 'bg-red-600'
+      };
+    },
+
+    // =====================================================
+    // PROYECCIÓN / COLOR DIFERENCIA POR FLUJO
+    // Entrada: ejecutar más es bueno.
+    // Salida: ejecutar más es malo.
+    // =====================================================
+    getProjectionDiffColor(row) {
+      if (row.diferencia === 0) return 'text-gray-400';
+
+      if (row.flujo === 'entrada') {
+        return row.diferencia > 0 ? 'text-tema-4' : 'text-red-500';
+      }
+
+      return row.diferencia > 0 ? 'text-red-500' : 'text-tema-4';
+    },
+
+    getProjectionDetailTooltip(row) {
+      if (!row.detalle || !row.detalle.length) return '';
+
+      return row.detalle.map(item => {
+        return [
+          item.categoria || 'Sin categoría',
+          item.tercero || 'Sin tercero',
+          '$ ' + this.formatInput(item.valor)
+        ].join(' • ');
+      }).join('\n');
+    },
+
+    // =====================================================
+    // PROYECCIÓN / OPCIONES POR FILA EDITABLE
+    // =====================================================
+    projectionGrupoOptionsByTipo(tipo) {
+      return [...new Set(
+        this.dbTablaPG
+          .filter(item => !tipo || item.tipo === tipo)
+          .map(item => item.grupo)
+      )].filter(Boolean).sort();
+    },
+
+    projectionCategoriaOptionsByTipoGrupo(tipo, grupo) {
+      return [...new Set(
+        this.dbTablaPG
+          .filter(item => !tipo || item.tipo === tipo)
+          .filter(item => !grupo || item.grupo === grupo)
+          .map(item => item.categoria)
+      )].filter(Boolean).sort();
+    },
+
+    // =====================================================
+    // PROYECCIÓN / EDICIÓN DE FILAS
+    // =====================================================
+    isProjectionRowEditing(row) {
+      return !!this.projectionEditingRows[row.key];
+    },
+
+    // =====================================================
+    // PROYECCIÓN / NUEVA FILA INDIVIDUAL
+    // Crea una fila pendiente y la deja editable en línea
+    // =====================================================
+    addProjectionSingleRow() {
+      const rowKey = 'new-' + Date.now();
+
+      const record = {
+        fecha_ejecucion: this.getProjectionDefaultBudgetDate(),
+
+        tipo: this.projectionFilters.tipo || '',
+        grupo: this.projectionFilters.grupo || '',
+        categoria: this.projectionFilters.categoria || '',
+        tercero: this.projectionFilters.tercero || '',
+
+        valor: 0,
+        descripcion: '',
+        estado: 'h'
+      };
+
+      this.$set(this.projectionTasks, rowKey, {
+        action: 'create',
+        id: null,
+        rowKey: rowKey,
+        record: record
+      });
+
+      this.$set(this.projectionDrafts, rowKey, {
+        fecha_ejecucion: record.fecha_ejecucion,
+        tipo: record.tipo,
+        grupo: record.grupo,
+        categoria: record.categoria,
+        tercero: record.tercero,
+        valor: this.formatInput(record.valor),
+        descripcion: record.descripcion
+      });
+
+      this.$set(this.projectionEditingRows, rowKey, true);
+    },
+
+    editProjectionRow(row) {
+      const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
+
+      const defaultCategoria = row.isVirtual && row.categoria === 'No presupuestado'
+        ? ''
+        : (row.categoria || '');
+
+      const defaultTercero = row.isVirtual && row.tercero === 'No presupuestado'
+        ? ''
+        : (row.tercero || '');
+
+      this.$set(this.projectionDrafts, row.key, {
+        fecha_ejecucion: row.fecha_ejecucion || today,
+        tipo: row.tipo || '',
+        grupo: row.grupo || '',
+        categoria: defaultCategoria,
+        tercero: defaultTercero,
+        valor: this.formatInput(row.presupuesto || row.ejecutado || 0),
+        descripcion: row.descripcion || ''
+      });
+
+      this.$set(this.projectionEditingRows, row.key, true);
+
+      if (row.isVirtual) {
+        this.queueProjectionDraft(row);
+      }
+    },
+
+    closeProjectionRowEdit(row) {
+      this.$delete(this.projectionEditingRows, row.key);
+    },
+
+    // =====================================================
+    // PROYECCIÓN / CANCELAR EDICIÓN O CREACIÓN
+    // Si es nueva o viene desde +, elimina la tarea local.
+    // Si es existente, revierte cambios pendientes.
+    // =====================================================
+    cancelProjectionRowEdit(row) {
+      this.$delete(this.projectionDrafts, row.key);
+      this.$delete(this.projectionEditingRows, row.key);
+      this.$delete(this.projectionDeletedRows, row.key);
+
+      const task = this.projectionTasks[row.key];
+
+      if (task) {
+        this.$delete(this.projectionTasks, row.key);
+      }
+    },
+
+    onProjectionDraftTipoChange(row) {
+      if (!this.projectionDrafts[row.key]) return;
+
+      this.projectionDrafts[row.key].grupo = '';
+      this.projectionDrafts[row.key].categoria = '';
+
+      this.queueProjectionDraft(row);
+    },
+
+    onProjectionDraftGrupoChange(row) {
+      if (!this.projectionDrafts[row.key]) return;
+
+      this.projectionDrafts[row.key].categoria = '';
+
+      this.queueProjectionDraft(row);
+    },
+
+    queueProjectionDraft(row) {
+      const draft = this.projectionDrafts[row.key];
+
+      if (!draft) return;
+
+      const record = {
+        fecha_ejecucion: draft.fecha_ejecucion,
+        tipo: draft.tipo,
+        grupo: draft.grupo,
+        categoria: draft.categoria,
+        tercero: draft.tercero,
+        valor: this.parseToNumber(draft.valor),
+        descripcion: draft.descripcion,
+        estado: 'h'
+      };
+
+      const action = row.isVirtual || row.isPendingCreate || !row.budgetId
+        ? 'create'
+        : 'update';
+
+      this.$set(this.projectionTasks, row.key, {
+        action: action,
+        id: action === 'update' ? row.budgetId : null,
+        rowKey: row.key,
+        record: record
+      });
+    },
+
+    deleteProjectionBudgetRow(row) {
+      if (row.isVirtual) return;
+
+      // Si es una fila nueva pendiente, no existe en back.
+      // Entonces simplemente se cancela localmente.
+      if (row.isPendingCreate || !row.budgetId) {
+        this.$delete(this.projectionTasks, row.key);
+        this.$delete(this.projectionDrafts, row.key);
+        this.$delete(this.projectionEditingRows, row.key);
+        this.$delete(this.projectionDeletedRows, row.key);
+        return;
+      }
+
+      this.$set(this.projectionDeletedRows, row.key, true);
+
+      this.$set(this.projectionTasks, row.key, {
+        action: 'delete',
+        id: row.budgetId,
+        rowKey: row.key
+      });
+    },
+
+    restoreProjectionBudgetRow(row) {
+      this.$delete(this.projectionDeletedRows, row.key);
+      this.$delete(this.projectionTasks, row.key);
+    },
+
+    enableProjectionBulkEdit() {
+      this.projectionTableRowsFiltered.forEach(row => {
+        if (!this.projectionDeletedRows[row.key]) {
+          this.editProjectionRow(row);
+        }
+      });
+    },
+
+
+    // =====================================================
+    // PROYECCIÓN / VALIDACIÓN DE TAREAS ANTES DE BACK
+    // Obligatorios: fecha_ejecucion, tipo, grupo, valor, descripcion
+    // Opcionales: categoria, tercero
+    // =====================================================
+    validateProjectionTasksBeforeSave() {
+      const errors = [];
+
+      this.projectionPendingTasksList.forEach((task, index) => {
+        if (task.action === 'delete') return;
+
+        const record = task.record || {};
+
+        if (!record.fecha_ejecucion) {
+          errors.push(`Tarea ${index + 1}: fecha_ejecucion es requerida`);
+        }
+
+        if (!record.tipo) {
+          errors.push(`Tarea ${index + 1}: tipo es requerido`);
+        }
+
+        if (!record.grupo) {
+          errors.push(`Tarea ${index + 1}: grupo es requerido`);
+        }
+
+        if (
+          record.valor === '' ||
+          record.valor === null ||
+          record.valor === undefined ||
+          isNaN(Number(record.valor))
+        ) {
+          errors.push(`Tarea ${index + 1}: valor debe ser numérico`);
+        }
+
+        if (!record.descripcion || !String(record.descripcion).trim()) {
+          errors.push(`Tarea ${index + 1}: descripción es requerida`);
+        }
+      });
+
+      return errors;
+    },
+
+    // =====================================================
+    // PROYECCIÓN / GUARDADO REAL EN BACK
+    // Envía creates, updates y deletes al Apps Script
+    // =====================================================
+    async saveProjectionTasks() {
+      if (!this.projectionPendingTasksList.length) return;
+
+      const validationErrors = this.validateProjectionTasksBeforeSave();
+
+      if (validationErrors.length > 0) {
+        this.failedErrorMessage = validationErrors.slice(0, 8).join('\n');
+        this.showErrorModal = true;
+        return;
+      }
+
+      this.isSavingProjection = true;
+      this.projectionSaveSuccess = false;
+
+      try {
+        console.group('PROYECCIÓN / GUARDAR');
+        console.log('Tasks enviadas:', JSON.parse(JSON.stringify(this.projectionPendingTasksList)));
+
+        const response = await apiPost('saveProjectionTasks', {
+          tasks: this.projectionPendingTasksList
+        });
+
+        console.log('Respuesta saveProjectionTasks:', response);
+        console.groupEnd();
+
+        if (!response.success) {
+          this.failedErrorMessage = response.message || 'No se pudieron guardar los cambios de presupuesto';
+          this.showErrorModal = true;
+          return;
+        }
+
+        if (response.data && response.data.errors && response.data.errors.length > 0) {
+          this.failedErrorMessage = response.data.errors
+            .slice(0, 8)
+            .map(err => err.message || JSON.stringify(err))
+            .join('\n');
+
+          this.showErrorModal = true;
+        }
+
+        this.projectionTasks = {};
+        this.projectionDrafts = {};
+        this.projectionEditingRows = {};
+        this.projectionDeletedRows = {};
+
+        this.projectionSaveSuccess = true;
+
+        await this.fetchProjectionData(true);
+
+        setTimeout(() => {
+          this.projectionSaveSuccess = false;
+        }, 1800);
+
+      } catch (error) {
+        console.error(error);
+        this.failedErrorMessage = 'Error de conexión guardando presupuesto';
+        this.showErrorModal = true;
+      } finally {
+        this.isSavingProjection = false;
+      }
+    },
+
+    // =====================================================
+    // PROYECCIÓN / COPIAR PRESUPUESTO
+    // =====================================================
+    openProjectionCopyModal() {
+      this.projectionCopyModal.show = true;
+      this.projectionCopyPreview = [];
+      this.projectionCopyModal.targetDate = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
+    },
+
+    closeProjectionCopyModal() {
+      this.projectionCopyModal.show = false;
+      this.projectionCopyPreview = [];
+    },
+
+    prepareProjectionCopyPreview() {
+      const targetDate = this.projectionCopyModal.targetDate;
+
+      if (!targetDate) {
+        this.failedErrorMessage = 'Selecciona una fecha destino para copiar el presupuesto';
+        this.showErrorModal = true;
+        return;
+      }
+
+      const targetRange = this.getProjectionMonthRangeFromDate(targetDate);
+
+      const existsInTargetMonth = this.dbProjectionBudget.some(item => {
+        if ((item.estado || 'h') === 'n') return false;
+        return this.isProjectionDateInRange(item.fecha_ejecucion, targetRange);
+      });
+
+      if (existsInTargetMonth) {
+        this.failedErrorMessage = 'Ya existe presupuesto activo en el mes destino. No se generó la copia para evitar duplicados.';
+        this.showErrorModal = true;
+        return;
+      }
+
+      const sourceRange = this.getProjectionDateRange(this.projectionFilters.periodo);
+
+      const sourceRows = this.dbProjectionBudget.filter(item => {
+        if ((item.estado || 'h') === 'n') return false;
+        return this.isProjectionDateInRange(item.fecha_ejecucion, sourceRange);
+      });
+
+      if (!sourceRows.length) {
+        this.failedErrorMessage = 'No hay registros presupuestados en el periodo visible para copiar.';
+        this.showErrorModal = true;
+        return;
+      }
+
+      this.projectionCopyPreview = sourceRows.map((item, index) => {
+        return {
+          tmpId: 'copy-' + index + '-' + Date.now(),
+          fecha_ejecucion: targetDate,
+          tipo: item.tipo || '',
+          grupo: item.grupo || '',
+          categoria: item.categoria || '',
+          tercero: item.tercero || '',
+          valor: this.formatInput(item.valor || 0),
+          descripcion: item.descripcion || ''
+        };
+      });
+    },
+
+    addProjectionCopyPreviewToTasks() {
+      this.projectionCopyPreview.forEach(item => {
+        const rowKey = item.tmpId;
+
+        this.$set(this.projectionTasks, rowKey, {
+          action: 'create',
+          id: null,
+          rowKey: rowKey,
+          record: {
+            fecha_ejecucion: item.fecha_ejecucion,
+            tipo: item.tipo,
+            grupo: item.grupo,
+            categoria: item.categoria,
+            tercero: item.tercero,
+            valor: this.parseToNumber(item.valor),
+            descripcion: item.descripcion,
+            estado: 'h'
+          }
+        });
+      });
+
+      this.closeProjectionCopyModal();
     },
   }
 });

@@ -154,6 +154,17 @@
         <a href="#" @click.prevent="openDashboard()" :class="['block p-2 rounded transition border-l-4', activeView === 'dashboard' ? 'bg-tema-bg text-tema-1 font-black border-tema-1' : 'text-gray-600 border-transparent hover:bg-tema-bg']">
           <div class="flex items-center sidebar-link-content"><span class="material-symbols-outlined sidebar-icon text-xl" :class="isSidebarOpen ? 'mr-3' : ''">space_dashboard</span><span class="sidebar-text truncate">Dashboard</span></div>
         </a>
+
+        <!-- =========================================================
+          SIDEBAR: PROYECCIÓN
+          Módulo para presupuesto vs ejecución real
+        ========================================================= -->
+        <a href="#" @click.prevent="openProyeccion()" :class="['block p-2 rounded transition border-l-4', activeView === 'proyeccion' ? 'bg-tema-bg text-tema-1 font-black border-tema-1' : 'text-gray-600 border-transparent hover:bg-tema-bg']">
+          <div class="flex items-center sidebar-link-content">
+            <span class="material-symbols-outlined sidebar-icon text-xl" :class="isSidebarOpen ? 'mr-3' : ''">query_stats</span>
+            <span class="sidebar-text truncate">Proyección</span>
+          </div>
+        </a>
       </div>
       <div class="mt-auto border-t border-gray-200 pt-3 text-tema-3"><a href="#" @click.prevent="logout" class="block p-2 text-red-600 hover:bg-red-600 hover:text-white rounded-md transition-all font-bold text-sm"><div class="flex items-center"><span class="material-symbols-outlined mr-3">logout</span><span class="sidebar-text">Salir</span></div></a></div>
     </aside>
@@ -538,6 +549,594 @@
              </div>
           </div>
         </div>
+      </div>
+
+      <!-- =========================================================
+        VISTA: PROYECCIÓN
+        Presupuesto vs ejecución real
+        Front temporal con datos simulados
+      ========================================================= -->
+      <div v-if="activeView === 'proyeccion'" class="animate-fade-in flex flex-col h-full overflow-hidden text-tema-3">
+
+        <!-- =======================================================
+          PROYECCIÓN / HEADER
+        ======================================================= -->
+        <div class="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-3 mb-4 border-b-2 border-gray-300 pb-2 flex-shrink-0">
+          <div class="flex items-center text-tema-1">
+            <span class="material-symbols-outlined text-3xl mr-3 text-tema-1">query_stats</span>
+            <div>
+              <h2 class="text-3xl font-black leading-none">Proyección</h2>
+              <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">
+                Presupuesto vs ejecución real
+              </p>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2">
+            <button
+              @click="openProjectionCopyModal"
+              class="bg-white border border-gray-300 text-tema-1 font-black text-[10px] uppercase tracking-widest px-3 py-2 rounded-lg hover:bg-tema-bg transition-all flex items-center gap-1">
+              <span class="material-symbols-outlined text-[15px]">content_copy</span>
+              Copiar presupuesto
+            </button>
+
+            <!-- =======================================================
+              PROYECCIÓN / BOTÓN NUEVO PRESUPUESTO INDIVIDUAL
+            ======================================================= -->
+            <button
+              @click="addProjectionSingleRow"
+              class="bg-white border border-gray-300 text-tema-1 font-black text-[10px] uppercase tracking-widest px-3 py-2 rounded-lg hover:bg-tema-bg transition-all flex items-center gap-1">
+              <span class="material-symbols-outlined text-[15px]">add_circle</span>
+              Nuevo presupuesto
+            </button>
+
+            <button
+              @click="enableProjectionBulkEdit"
+              :disabled="projectionTableRowsFiltered.length === 0"
+              class="bg-white border border-gray-300 text-tema-1 font-black text-[10px] uppercase tracking-widest px-3 py-2 rounded-lg hover:bg-tema-bg transition-all flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed">
+              <span class="material-symbols-outlined text-[15px]">edit_square</span>
+              Editar masivo
+            </button>
+
+            <button
+              @click="saveProjectionTasks"
+              :disabled="projectionPendingTasksList.length === 0 || isSavingProjection"
+              class="bg-tema-1 text-white font-black text-[10px] uppercase tracking-widest px-4 py-2 rounded-lg shadow hover:bg-tema-5 hover:text-tema-1 transition-all flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed">
+              <span v-if="!isSavingProjection && !projectionSaveSuccess" class="material-symbols-outlined text-[15px]">save</span>
+              <span v-if="isSavingProjection" class="loader-small loader-white"></span>
+              <span v-if="projectionSaveSuccess" class="material-symbols-outlined text-[15px]">check_circle</span>
+              {{ projectionSaveSuccess ? 'Guardado' : 'Guardar cambios' }}
+              <span v-if="projectionPendingTasksList.length">({{ projectionPendingTasksList.length }})</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- =======================================================
+          PROYECCIÓN / FILTROS
+        ======================================================= -->
+        <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-300 mb-3 flex-shrink-0">
+          <div class="grid grid-cols-1 md:grid-cols-6 gap-2 items-center text-[10px] font-bold uppercase">
+
+            <select v-model="projectionFilters.periodo" class="p-1.5 border border-gray-300 rounded bg-white outline-none text-tema-1 font-black">
+              <option value="mes">Mes Actual</option>
+              <option value="mes_anterior">Mes Anterior</option>
+              <option value="ytd">Año a la Fecha</option>
+              <option value="año">Año Actual</option>
+              <option value="año_anterior">Año Anterior</option>
+              <option value="">Todo</option>
+            </select>
+
+            <select v-model="projectionFilters.tipo" @change="projectionFilters.grupo = ''; projectionFilters.categoria = ''" class="p-1.5 border border-gray-300 rounded bg-white outline-none">
+              <option value="">Tipos</option>
+              <option v-for="op in projectionTiposOptions" :value="op" :key="'proy-tipo-'+op">{{ op }}</option>
+            </select>
+
+            <select v-model="projectionFilters.grupo" @change="projectionFilters.categoria = ''" class="p-1.5 border border-gray-300 rounded bg-white outline-none">
+              <option value="">Grupos</option>
+              <option v-for="op in projectionGruposFilterOptions" :value="op" :key="'proy-grupo-'+op">{{ op }}</option>
+            </select>
+
+            <select v-model="projectionFilters.categoria" class="p-1.5 border border-gray-300 rounded bg-white outline-none">
+              <option value="">Categorías</option>
+              <option v-for="op in projectionCategoriasFilterOptions" :value="op" :key="'proy-cat-'+op">{{ op }}</option>
+            </select>
+
+            <select v-model="projectionFilters.tercero" class="p-1.5 border border-gray-300 rounded bg-white outline-none">
+              <option value="">Terceros</option>
+              <option v-for="op in tercerosOptions" :value="op" :key="'proy-ter-'+op">{{ op }}</option>
+            </select>
+
+            <div class="relative">
+              <span class="material-symbols-outlined absolute left-2 top-1.5 text-gray-400 text-[16px]">search</span>
+              <input
+                type="text"
+                v-model="projectionFilters.search"
+                placeholder="Buscar..."
+                class="w-full pl-7 pr-2 py-1.5 border border-gray-300 rounded bg-white outline-none normal-case text-[11px] font-medium">
+            </div>
+
+          </div>
+        </div>
+
+        <!-- =======================================================
+          PROYECCIÓN / KPIS FLUJO DE CAJA
+        ======================================================= -->
+        <div class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-2 mb-3 flex-shrink-0">
+
+          <div class="bg-white rounded-lg border border-gray-200 p-2 shadow-sm border-l-[3px] border-l-tema-4">
+            <p class="text-[8px] font-black uppercase tracking-widest text-gray-400">Ppto Entradas</p>
+            <p class="text-sm font-black text-tema-4">$ {{ formatInput(projectionTotals.presupuestoEntradas) }}</p>
+          </div>
+
+          <div class="bg-white rounded-lg border border-gray-200 p-2 shadow-sm border-l-[3px] border-l-tema-4">
+            <p class="text-[8px] font-black uppercase tracking-widest text-gray-400">Real Entradas</p>
+            <p class="text-sm font-black text-tema-4">$ {{ formatInput(projectionTotals.ejecutadoEntradas) }}</p>
+          </div>
+
+          <div class="bg-white rounded-lg border border-gray-200 p-2 shadow-sm border-l-[3px] border-l-red-500">
+            <p class="text-[8px] font-black uppercase tracking-widest text-gray-400">Ppto Salidas</p>
+            <p class="text-sm font-black text-red-500">$ {{ formatInput(projectionTotals.presupuestoSalidas) }}</p>
+          </div>
+
+          <div class="bg-white rounded-lg border border-gray-200 p-2 shadow-sm border-l-[3px] border-l-red-500">
+            <p class="text-[8px] font-black uppercase tracking-widest text-gray-400">Real Salidas</p>
+            <p class="text-sm font-black text-red-500">$ {{ formatInput(projectionTotals.ejecutadoSalidas) }}</p>
+          </div>
+
+          <div class="bg-white rounded-lg border border-gray-200 p-2 shadow-sm border-l-[3px] border-l-tema-1">
+            <p class="text-[8px] font-black uppercase tracking-widest text-gray-400">Neto Ppto</p>
+            <p class="text-sm font-black" :class="projectionTotals.netoPresupuesto >= 0 ? 'text-tema-4' : 'text-red-500'">
+              $ {{ formatInput(Math.abs(projectionTotals.netoPresupuesto)) }}
+            </p>
+          </div>
+
+          <div class="bg-white rounded-lg border border-gray-200 p-2 shadow-sm border-l-[3px] border-l-tema-5">
+            <p class="text-[8px] font-black uppercase tracking-widest text-gray-400">Neto Real</p>
+            <p class="text-sm font-black" :class="projectionTotals.netoEjecutado >= 0 ? 'text-tema-4' : 'text-red-500'">
+              $ {{ formatInput(Math.abs(projectionTotals.netoEjecutado)) }}
+            </p>
+          </div>
+
+          <div class="bg-white rounded-lg border border-gray-200 p-2 shadow-sm border-l-[3px] border-l-red-600">
+            <p class="text-[8px] font-black uppercase tracking-widest text-gray-400">No Presup. Salida</p>
+            <p class="text-sm font-black text-red-600">
+              $ {{ formatInput(projectionTotals.noPresupuestadoSalida) }}
+            </p>
+            <p class="text-[8px] text-gray-400 font-bold uppercase">
+              {{ projectionTotals.noPresupuestadoSalidaItems }} filas
+            </p>
+          </div>
+
+          <div class="bg-white rounded-lg border border-gray-200 p-2 shadow-sm border-l-[3px] border-l-orange-400">
+            <p class="text-[8px] font-black uppercase tracking-widest text-gray-400">Alertas</p>
+            <p class="text-sm font-black text-orange-500">{{ projectionTotals.alertas }}</p>
+          </div>
+
+        </div>
+
+        <!-- =======================================================
+          PROYECCIÓN / SKELETON
+        ======================================================= -->
+        <div v-if="isLoadingProjection" class="bg-white rounded-xl border border-gray-300 shadow-sm p-4 flex-1">
+          <div class="animate-pulse space-y-2">
+            <div class="h-8 bg-gray-100 rounded"></div>
+            <div class="h-8 bg-gray-100 rounded"></div>
+            <div class="h-8 bg-gray-100 rounded"></div>
+            <div class="h-8 bg-gray-100 rounded"></div>
+            <div class="h-8 bg-gray-100 rounded"></div>
+            <div class="h-8 bg-gray-100 rounded"></div>
+          </div>
+        </div>
+
+        <!-- =======================================================
+          PROYECCIÓN / TABLA PRINCIPAL
+        ======================================================= -->
+        <div v-else class="bg-white rounded-xl shadow-sm border border-gray-300 flex-1 flex flex-col min-h-0 overflow-hidden">
+
+          <div v-if="isSyncingProjectionBackground" class="px-3 py-1.5 bg-blue-50 text-blue-600 text-[9px] font-black uppercase tracking-widest border-b border-blue-100 flex items-center gap-2">
+            <div class="loader-small"></div>
+            Sincronizando histórico en segundo plano...
+          </div>
+
+          <div class="overflow-auto flex-1 scroll-area">
+            <table class="w-full text-left border-collapse table-auto relative text-[10px]">
+              <thead class="sticky top-0 z-20">
+                <tr class="bg-tema-1 text-white uppercase tracking-wider">
+                  <th class="p-2 border-r border-white/10 w-20">Fecha</th>
+                  <th class="p-2 border-r border-white/10 w-20">Tipo</th>
+                  <th class="p-2 border-r border-white/10 w-20">Flujo</th>
+                  <th class="p-2 border-r border-white/10">Grupo</th>
+                  <th class="p-2 border-r border-white/10">Categoría</th>
+                  <th class="p-2 border-r border-white/10">Tercero</th>
+                  <th class="p-2 border-r border-white/10 text-right">Presupuesto</th>
+                  <th class="p-2 border-r border-white/10 text-right">Ejecutado</th>
+                  <th class="p-2 border-r border-white/10 text-right">Dif.</th>
+                  <th class="p-2 border-r border-white/10 text-center w-24">% Ejec.</th>
+                  <th class="p-2 text-center w-24">Acciones</th>
+                </tr>
+              </thead>
+
+              <!-- =====================================================
+                PROYECCIÓN / FILA PRINCIPAL + FILA DESCRIPCIÓN
+                Usamos tbody v-for para evitar template dentro de tabla
+              ===================================================== -->
+              <tbody
+                v-for="row in projectionTableRowsFiltered"
+                :key="row.key"
+              >
+
+                  <tr
+                    :key="row.key + '-main'"
+                    :title="row.descripcion || 'Sin descripción'"
+                    class="border-b border-gray-100 hover:bg-tema-bg/50 transition-colors h-11"
+                    :class="[
+                      projectionDeletedRows[row.key] ? 'opacity-40 line-through bg-red-50' : '',
+                      row.isVirtual ? 'bg-orange-50/30' : '',
+                      row.isPendingCreate ? 'bg-blue-50/40' : ''
+                    ]">
+
+                    <!-- FECHA -->
+                    <td class="p-1.5 whitespace-nowrap">
+                      <input
+                        v-if="isProjectionRowEditing(row)"
+                        type="date"
+                        v-model="projectionDrafts[row.key].fecha_ejecucion"
+                        @change="queueProjectionDraft(row)"
+                        class="w-full border border-gray-300 rounded px-1 py-1 text-[10px] outline-none">
+
+                      <span v-else class="font-mono text-gray-500 text-[9px]">
+                        {{ row.fecha_ejecucion || '-' }}
+                      </span>
+                    </td>
+
+
+                    <!-- TIPO -->
+                    <td class="p-1.5">
+                      <select
+                        v-if="isProjectionRowEditing(row)"
+                        v-model="projectionDrafts[row.key].tipo"
+                        @change="onProjectionDraftTipoChange(row)"
+                        class="w-full border border-gray-300 rounded px-1 py-1 text-[10px] outline-none">
+                        <option value="">Tipo</option>
+                        <option v-for="op in projectionTiposOptions" :value="op" :key="'edit-tipo-'+row.key+'-'+op">{{ op }}</option>
+                      </select>
+
+                      <span v-else class="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-tighter" :class="getTipoBadgeColor(row.tipo)">
+                        {{ row.tipo }}
+                      </span>
+                    </td>
+
+                    <!-- =====================================================
+                      PROYECCIÓN / FLUJO
+                    ===================================================== -->
+                    <td class="p-1.5">
+                      <span
+                        class="px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter"
+                        :class="getProjectionFlowBadgeClass(row.flujo)">
+                        {{ getProjectionFlowLabel(row.flujo) }}
+                      </span>
+                    </td>
+
+                    <!-- GRUPO -->
+                    <td class="p-1.5">
+                      <select
+                        v-if="isProjectionRowEditing(row)"
+                        v-model="projectionDrafts[row.key].grupo"
+                        @change="onProjectionDraftGrupoChange(row)"
+                        class="w-full border border-gray-300 rounded px-1 py-1 text-[10px] outline-none">
+                        <option value="">Grupo</option>
+                        <option v-for="op in projectionGrupoOptionsByTipo(projectionDrafts[row.key].tipo)" :value="op" :key="'edit-grupo-'+row.key+'-'+op">{{ op }}</option>
+                      </select>
+
+                      <span v-else class="font-bold text-gray-600">
+                        {{ row.grupo || 'Global' }}
+                      </span>
+                    </td>
+
+                    <!-- CATEGORÍA -->
+                    <td class="p-1.5">
+                      <select
+                        v-if="isProjectionRowEditing(row)"
+                        v-model="projectionDrafts[row.key].categoria"
+                        @change="queueProjectionDraft(row)"
+                        class="w-full border border-gray-300 rounded px-1 py-1 text-[10px] outline-none">
+                        <option value="">Global</option>
+                        <option v-for="op in projectionCategoriaOptionsByTipoGrupo(projectionDrafts[row.key].tipo, projectionDrafts[row.key].grupo)" :value="op" :key="'edit-cat-'+row.key+'-'+op">{{ op }}</option>
+                      </select>
+
+                      <div v-else class="flex items-center gap-1">
+                        <span class="font-bold" :class="row.isVirtual ? 'text-orange-600' : 'text-tema-3'">
+                          {{ row.categoria || 'Global' }}
+                        </span>
+
+                        <span
+                          v-if="row.isVirtual && row.detalle && row.detalle.length"
+                          class="material-symbols-outlined text-[13px] text-orange-400 cursor-help"
+                          :title="getProjectionDetailTooltip(row)">
+                          info
+                        </span>
+                      </div>
+                    </td>
+
+                    <!-- TERCERO -->
+                    <td class="p-1.5">
+                      <select
+                        v-if="isProjectionRowEditing(row)"
+                        v-model="projectionDrafts[row.key].tercero"
+                        @change="queueProjectionDraft(row)"
+                        class="w-full border border-gray-300 rounded px-1 py-1 text-[10px] outline-none">
+                        <option value="">Global</option>
+                        <option v-for="op in tercerosOptions" :value="op" :key="'edit-ter-'+row.key+'-'+op">{{ op }}</option>
+                      </select>
+
+                      <span v-else class="text-gray-500">
+                        {{ row.tercero || 'Global' }}
+                      </span>
+                    </td>
+
+                    <!-- PRESUPUESTO -->
+                    <td class="p-1.5 text-right">
+                      <input
+                        v-if="isProjectionRowEditing(row)"
+                        type="text"
+                        v-model="projectionDrafts[row.key].valor"
+                        @blur="projectionDrafts[row.key].valor = handleValorBlur(projectionDrafts[row.key].valor); queueProjectionDraft(row)"
+                        @focus="projectionDrafts[row.key].valor = cleanInput(projectionDrafts[row.key].valor)"
+                        @input="queueProjectionDraft(row)"
+                        class="w-full border border-gray-300 rounded px-1 py-1 text-[10px] text-right font-black outline-none text-tema-1">
+
+                      <span v-else class="font-black text-tema-1">
+                        $ {{ formatInput(row.presupuesto) }}
+                      </span>
+                    </td>
+
+                    <!-- EJECUTADO -->
+                    <td class="p-1.5 text-right font-black" :class="getValorColor(row.tipo)">
+                      $ {{ formatInput(row.ejecutado) }}
+                    </td>
+
+                    <!-- DIFERENCIA -->
+                    <td class="p-1.5 text-right font-black" :class="getProjectionDiffColor(row)">
+                      {{ row.diferencia >= 0 ? '+' : '-' }} $ {{ formatInput(Math.abs(row.diferencia)) }}
+                    </td>
+
+                    <!-- =====================================================
+                      PROYECCIÓN / % EJECUCIÓN COMPACTO
+                      Sin texto de bandera, solo barra + porcentaje
+                    ===================================================== -->
+                    <td class="p-1.5 text-center">
+                      <div
+                        class="flex flex-col items-center justify-center gap-0.5"
+                        :title="row.alerta.label"
+                      >
+                        <div class="w-20 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                          <div
+                            class="h-full rounded-full"
+                            :class="row.alerta.barClass"
+                            :style="{ width: Math.min(row.porcentaje, 130) + '%' }">
+                          </div>
+                        </div>
+
+                        <span
+                          class="text-[8px] font-black"
+                          :class="row.alerta.level === 'danger' ? 'text-red-500' : row.alerta.level === 'warning' ? 'text-orange-500' : 'text-gray-500'"
+                        >
+                          {{ row.porcentajeLabel }}
+                        </span>
+                      </div>
+                    </td>
+
+                    <!-- ACCIONES -->
+                    <td class="p-1.5 text-center">
+                      <div class="flex items-center justify-center gap-1">
+
+                        <button
+                          v-if="!isProjectionRowEditing(row) && !projectionDeletedRows[row.key]"
+                          @click="editProjectionRow(row)"
+                          class="text-tema-1 hover:text-tema-5 transition-colors"
+                          :title="row.isVirtual ? 'Crear presupuesto' : 'Editar presupuesto'">
+                          <span class="material-symbols-outlined text-[17px]">
+                            {{ row.isVirtual ? 'add_circle' : 'edit' }}
+                          </span>
+                        </button>
+
+                        <!-- Confirmar edición local -->
+                        <button
+                          v-if="isProjectionRowEditing(row)"
+                          @click="closeProjectionRowEdit(row)"
+                          class="text-tema-4 hover:text-tema-1 transition-colors"
+                          title="Mantener cambios pendientes">
+                          <span class="material-symbols-outlined text-[17px]">done</span>
+                        </button>
+
+                        <!-- Cancelar edición / creación -->
+                        <button
+                          v-if="isProjectionRowEditing(row)"
+                          @click="cancelProjectionRowEdit(row)"
+                          class="text-red-400 hover:text-red-600 transition-colors"
+                          title="Cancelar cambios">
+                          <span class="material-symbols-outlined text-[17px]">close</span>
+                        </button>
+
+                        <button
+                          v-if="!isProjectionRowEditing(row) && !row.isVirtual && !projectionDeletedRows[row.key]"
+                          @click="deleteProjectionBudgetRow(row)"
+                          class="text-red-300 hover:text-red-600 transition-colors"
+                          title="Eliminar presupuesto">
+                          <span class="material-symbols-outlined text-[17px]">delete</span>
+                        </button>
+
+                        <button
+                          v-if="projectionDeletedRows[row.key]"
+                          @click="restoreProjectionBudgetRow(row)"
+                          class="text-tema-4 hover:text-tema-1 transition-colors"
+                          title="Restaurar">
+                          <span class="material-symbols-outlined text-[17px]">restore</span>
+                        </button>
+
+                      </div>
+                    </td>
+
+                  </tr>
+
+
+
+                  <!-- =====================================================
+                    PROYECCIÓN / DESCRIPCIÓN EN MODO EDICIÓN
+                    No es columna; aparece debajo de la fila activa
+                  ===================================================== -->
+                  <tr
+                    v-if="isProjectionRowEditing(row)"
+                    :key="row.key + '-desc'"
+                    class="bg-blue-50/40 border-b border-blue-100">
+
+                    <td colspan="11" class="px-3 py-2">
+                      <div class="flex flex-col md:flex-row gap-2 md:items-center">
+
+                        <label class="text-[9px] font-black uppercase tracking-widest text-tema-1 md:w-24">
+                          Descripción
+                          <span class="text-red-500">*</span>
+                        </label>
+
+                        <input
+                          type="text"
+                          v-model="projectionDrafts[row.key].descripcion"
+                          @input="queueProjectionDraft(row)"
+                          placeholder="Detalle del presupuesto"
+                          class="flex-1 border border-blue-200 rounded-md px-3 py-1.5 text-[11px] outline-none focus:ring-1 focus:ring-tema-1 bg-white text-tema-3">
+
+                      </div>
+                    </td>
+
+                  </tr>
+
+
+              </tbody>
+
+              <tbody v-if="projectionTableRowsFiltered.length === 0">
+                <tr>
+                  <td colspan="11" class="p-12 text-center text-gray-400 italic text-sm">
+                    Sin registros de proyección para este filtro.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- =====================================================
+            PROYECCIÓN / FOOTER FLUJO DE CAJA
+          ===================================================== -->
+          <div class="bg-tema-1 text-white py-1.5 px-4 border-t border-tema-2 shadow-2xl z-30 flex-shrink-0 flex flex-col md:flex-row justify-between items-center gap-2 text-[9px] font-black uppercase tracking-tight">
+            <div class="flex items-center gap-4">
+              <span class="text-white/70">ITEMS: {{ projectionTableRowsFiltered.length }}</span>
+              <span class="text-tema-2 border-l border-white/20 pl-4">Periodo: {{ projectionCurrentPeriodLabel }}</span>
+            </div>
+
+            <div class="flex gap-4 items-center">
+              <span>Entradas: <b class="text-tema-2">$ {{ formatInput(projectionTotals.ejecutadoEntradas) }}</b></span>
+              <span>Salidas: <b class="text-red-400">$ {{ formatInput(projectionTotals.ejecutadoSalidas) }}</b></span>
+              <span>
+                Neto Real:
+                <b :class="projectionTotals.netoEjecutado >= 0 ? 'text-tema-2' : 'text-red-400'">
+                  $ {{ formatInput(Math.abs(projectionTotals.netoEjecutado)) }}
+                </b>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- =======================================================
+          PROYECCIÓN / MODAL COPIAR PRESUPUESTO
+        ======================================================= -->
+        <div v-if="projectionCopyModal.show" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div class="bg-white rounded-xl shadow-2xl w-full max-w-5xl border-t-4 border-tema-1 animate-fade-in overflow-hidden">
+
+            <div class="px-5 py-4 border-b border-gray-200 flex justify-between items-center">
+              <div>
+                <h3 class="text-xl font-black text-tema-1">Copiar presupuesto</h3>
+                <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+                  Copia el presupuesto visible a una nueva fecha de ejecución
+                </p>
+              </div>
+
+              <button @click="closeProjectionCopyModal" class="text-gray-400 hover:text-red-500">
+                <span class="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <div class="p-4 border-b border-gray-200 bg-tema-bg/50 flex flex-col md:flex-row gap-3 md:items-end">
+              <div>
+                <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">Fecha destino</label>
+                <input type="date" v-model="projectionCopyModal.targetDate" class="border border-gray-300 rounded px-3 py-2 text-sm outline-none">
+              </div>
+
+              <button
+                @click="prepareProjectionCopyPreview"
+                class="bg-tema-1 text-white font-black text-[10px] uppercase tracking-widest px-4 py-2 rounded-lg hover:bg-tema-5 hover:text-tema-1 transition-all">
+                Generar vista previa
+              </button>
+
+              <div class="text-[10px] text-gray-500 font-bold">
+                Se copiarán los registros presupuestados del periodo actualmente visible.
+              </div>
+            </div>
+
+            <div class="p-4 max-h-[55vh] overflow-auto">
+              <div v-if="projectionCopyPreview.length === 0" class="text-center text-gray-400 italic p-8">
+                Genera una vista previa para editar las filas antes de agregarlas a pendientes.
+              </div>
+
+              <table v-else class="w-full text-left border-collapse text-[10px]">
+                <thead>
+                  <tr class="bg-gray-100 text-gray-500 uppercase tracking-wider">
+                    <th class="p-2">Fecha</th>
+                    <th class="p-2">Tipo</th>
+                    <th class="p-2">Grupo</th>
+                    <th class="p-2">Categoría</th>
+                    <th class="p-2">Tercero</th>
+                    <th class="p-2 text-right">Valor</th>
+                    <th class="p-2">Descripción</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  <tr v-for="item in projectionCopyPreview" :key="item.tmpId" class="border-b border-gray-100">
+                    <td class="p-1"><input type="date" v-model="item.fecha_ejecucion" class="w-full border rounded px-1 py-1"></td>
+                    <td class="p-1"><input type="text" v-model="item.tipo" class="w-full border rounded px-1 py-1"></td>
+                    <td class="p-1"><input type="text" v-model="item.grupo" class="w-full border rounded px-1 py-1"></td>
+                    <td class="p-1"><input type="text" v-model="item.categoria" class="w-full border rounded px-1 py-1"></td>
+                    <td class="p-1"><input type="text" v-model="item.tercero" class="w-full border rounded px-1 py-1"></td>
+                    <td class="p-1">
+                      <input
+                        type="text"
+                        v-model="item.valor"
+                        @blur="item.valor = handleValorBlur(item.valor)"
+                        @focus="item.valor = cleanInput(item.valor)"
+                        class="w-full border rounded px-1 py-1 text-right font-black"
+                      >
+                    </td>
+                    <td class="p-1"><input type="text" v-model="item.descripcion" class="w-full border rounded px-1 py-1"></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="px-5 py-3 bg-gray-50 border-t border-gray-200 flex justify-end gap-2">
+              <button @click="closeProjectionCopyModal" class="px-4 py-2 rounded border border-gray-300 text-gray-500 font-black text-[10px] uppercase tracking-widest">
+                Cancelar
+              </button>
+
+              <button
+                @click="addProjectionCopyPreviewToTasks"
+                :disabled="projectionCopyPreview.length === 0"
+                class="px-4 py-2 rounded bg-tema-1 text-white font-black text-[10px] uppercase tracking-widest disabled:opacity-40 disabled:cursor-not-allowed">
+                Agregar a pendientes
+              </button>
+            </div>
+
+          </div>
+        </div>
+
       </div>
 
       <!-- VISTA: DASHBOARD -->
