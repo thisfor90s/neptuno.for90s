@@ -14,7 +14,7 @@ new Vue({
     isLoggingIn: false,
     loginError: '',
 
-    isSidebarOpen: true,
+    isSidebarOpen: false,
     showSidebar: false,
     isDesktopView: true,
     activeView: 'dashboard',
@@ -996,8 +996,10 @@ new Vue({
           return;
         }
 
-        const virtualCat = hasBudgetByCategory[catKey] ? categoria : 'No presupuestado';
-        const virtualTer = hasBudgetByCategory[catKey] ? 'No presupuestado' : '';
+        // Para ejecución real sin presupuesto, desglosamos mínimo hasta categoría.
+        // No bajamos a tercero para evitar demasiada granularidad.
+        const virtualCat = categoria || 'Sin categoría';
+        const virtualTer = '';
 
         const virtualKey = 'u-' + this.buildProjectionMatchKey(tipo, grupo, virtualCat, virtualTer, flujo);
 
@@ -1161,6 +1163,52 @@ new Vue({
       totals.noPresupuestadoItems = totals.noPresupuestadoSalidaItems;
 
       return totals;
+    },
+
+    // =====================================================
+    // PROYECCIÓN / MÉTRICAS KPI
+    // Ratios y diferencias para tarjetas superiores
+    // =====================================================
+    projectionKpiMetrics() {
+      const t = this.projectionTotals;
+
+      const pctAbs = function(real, presupuesto) {
+        const r = Math.abs(Number(real) || 0);
+        const p = Math.abs(Number(presupuesto) || 0);
+
+        if (!p && r) return 999;
+        if (!p && !r) return 0;
+
+        return (r / p) * 100;
+      };
+
+      const pctSigned = function(real, presupuesto) {
+        const r = Number(real) || 0;
+        const p = Number(presupuesto) || 0;
+
+        if (!p && r) return 999;
+        if (!p && !r) return 0;
+
+        return (r / p) * 100;
+      };
+
+      return {
+        entradasPct: pctAbs(t.ejecutadoEntradas, t.presupuestoEntradas),
+        salidasPct: pctAbs(t.ejecutadoSalidas, t.presupuestoSalidas),
+        netoPct: pctSigned(t.netoEjecutado, t.netoPresupuesto),
+
+        entradasDiff: t.ejecutadoEntradas - t.presupuestoEntradas,
+        salidasDiff: t.ejecutadoSalidas - t.presupuestoSalidas,
+        netoDiff: t.netoEjecutado - t.netoPresupuesto,
+
+        noPresupuestadoSalidaPct: t.ejecutadoSalidas
+          ? (t.noPresupuestadoSalida / t.ejecutadoSalidas) * 100
+          : 0,
+
+        alertasPct: this.projectionTableRowsFiltered.length
+          ? (t.alertas / this.projectionTableRowsFiltered.length) * 100
+          : 0
+      };
     },
 
     // =====================================================
@@ -2801,6 +2849,103 @@ new Vue({
       });
 
       this.closeProjectionCopyModal();
+    },
+
+    // =====================================================
+    // PROYECCIÓN / FORMATOS KPI
+    // =====================================================
+    formatProjectionSignedMoney(value) {
+      const num = Number(value) || 0;
+
+      if (num === 0) return '$ 0';
+
+      const sign = num < 0 ? '- ' : '';
+
+      return sign + '$ ' + this.formatInput(Math.abs(num));
+    },
+
+    formatProjectionDiffMoney(value) {
+      const num = Number(value) || 0;
+
+      if (num === 0) return '$ 0';
+
+      const sign = num > 0 ? '+ ' : '- ';
+
+      return sign + '$ ' + this.formatInput(Math.abs(num));
+    },
+
+    formatProjectionPct(value) {
+      const num = Number(value);
+
+      if (!Number.isFinite(num)) return '-';
+      if (num >= 999) return 'Sin ppto';
+
+      const sign = num < 0 ? '-' : '';
+
+      return sign + Math.abs(num).toFixed(1) + '%';
+    },
+
+    getProjectionPctWidth(value) {
+      const num = Number(value) || 0;
+
+      if (num >= 999) return 100;
+
+      return Math.min(Math.abs(num), 100);
+    },
+
+    getProjectionPctBarClass(value, mode) {
+      const num = Number(value) || 0;
+
+      if (num >= 999) return 'bg-red-500';
+
+      if (mode === 'entrada') {
+        if (num >= 100) return 'bg-green-500';
+        if (num >= 90) return 'bg-orange-400';
+        return 'bg-red-500';
+      }
+
+      if (mode === 'salida') {
+        if (num < 70) return 'bg-green-500';
+        if (num < 95) return 'bg-orange-400';
+        return 'bg-red-500';
+      }
+
+      if (mode === 'neto') {
+        if (num >= 100) return 'bg-green-500';
+        if (num >= 80) return 'bg-orange-400';
+        return 'bg-red-500';
+      }
+
+      return 'bg-tema-5';
+    },
+
+    getProjectionSignedValueClass(value) {
+      const num = Number(value) || 0;
+
+      if (num > 0) return 'text-tema-4';
+      if (num < 0) return 'text-red-500';
+
+      return 'text-gray-500';
+    },
+
+    getProjectionKpiDiffClass(value, mode) {
+      const num = Number(value) || 0;
+
+      if (num === 0) return 'text-gray-400';
+
+      if (mode === 'entrada') {
+        return num > 0 ? 'text-tema-4' : 'text-red-500';
+      }
+
+      if (mode === 'salida') {
+        return num > 0 ? 'text-red-500' : 'text-tema-4';
+      }
+
+      if (mode === 'neto') {
+        return num > 0 ? 'text-tema-4' : 'text-red-500';
+      }
+
+      return num > 0 ? 'text-tema-4' : 'text-red-500';
     },
   }
 });

@@ -79,27 +79,67 @@
 
   <div id="app" class="h-full flex flex-col">
   
-  <!-- BARRA DE NAVEGACIÓN -->
-  <nav class="bg-tema-1 px-4 shadow-md z-30 relative border-b-[3px] border-tema-2 h-14 flex items-center shrink-0">
-    <div class="flex justify-between items-center w-full max-w-full mx-auto text-white">
-      <div class="flex flex-col justify-center">
-        <h1 class="text-xl font-black tracking-tight leading-none flex items-center">Neptuno FZ <sup class="text-[10px] font-light text-tema-2 ml-1">©</sup></h1>
-        <h2 class="text-white/70 text-[10px] leading-tight font-normal tracking-wide">Luis Prieto - Finanzas Personales</h2>
-      </div>
-      <div v-if="isAuthenticated" class="flex items-center space-x-3 animate-fade-in text-sm">
-        <span class="hidden sm:block font-medium">{{ displayName }}</span>
+    <!-- BARRA DE NAVEGACIÓN -->
+    <nav class="bg-tema-1 px-4 md:px-5 shadow-md z-30 relative border-b-[3px] border-tema-2 h-16 flex items-center shrink-0">
+      <div class="flex justify-between items-center w-full max-w-full mx-auto text-white">
 
-        <div class="w-8 h-8 rounded-full overflow-hidden shadow-sm border border-white/20">
-          <img 
-            src="./images/favicon.png" 
-            alt="Avatar usuario"
-            class="w-full h-full object-cover"
-          >
+        <!-- BRAND IZQUIERDA -->
+        <div class="flex items-center gap-3 min-w-0">
+
+          <!-- ÍCONO DIAMANTE -->
+          <div class="relative w-10 h-10 rounded-2xl bg-white shadow-sm border border-white/40 flex items-center justify-center overflow-hidden shrink-0">
+
+            <!-- Base blanca elegante -->
+            <div class="absolute inset-0 bg-white"></div>
+
+            <!-- Desvanecido diagonal verde -->
+            <div class="absolute inset-0 bg-gradient-to-br from-[#EFFFF8] via-[#87D8C2]/45 to-[#1C6227]/10"></div>
+
+            <!-- Luz suave desde la esquina superior izquierda -->
+            <div class="absolute -top-5 -left-5 w-14 h-14 rounded-full bg-[#1C6227]/20 blur-xl"></div>
+
+            <!-- Desvanecido más suave hacia esquina inferior derecha -->
+            <div class="absolute -bottom-5 -right-5 w-14 h-14 rounded-full bg-[#87D8C2]/20 blur-xl"></div>
+
+            <!-- Diamante -->
+            <span class="relative material-symbols-outlined text-[24px] bg-gradient-to-br from-tema-1 via-tema-4 to-tema-2 bg-clip-text text-transparent">
+              diamond
+            </span>
+          </div>
+
+          <!-- TEXTO BRAND -->
+          <div class="flex flex-col justify-center min-w-0">
+            <h1 class="text-[20px] sm:text-[22px] font-black tracking-tight leading-none flex items-center truncate">
+              Finanzas Personales
+              <sup class="text-[9px] font-light text-tema-2 ml-1">©</sup>
+            </h1>
+
+            <div class="mt-1 flex items-center gap-1.5 text-white/75 text-[10px] leading-none font-medium tracking-wide">
+              <span class="truncate">Luis Prieto</span>
+
+              <span class="inline-flex items-center bg-gradient-to-br from-white via-[#EFFFF8] to-[#87D8C2]/40 text-tema-4 border border-[#87D8C2]/40 px-1.5 py-[2px] rounded-full text-[8px] font-black lowercase tracking-wide shadow-sm">
+                by for90s
+              </span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- USUARIO DERECHA -->
+        <div v-if="isAuthenticated" class="flex items-center space-x-2 animate-fade-in text-sm shrink-0">
+          <span class="hidden sm:block font-black leading-none">{{ displayName }}</span>
+
+          <div class="w-9 h-9 rounded-full overflow-hidden shadow-sm border border-white/25 bg-white/10">
+            <img 
+              src="./images/favicon.png" 
+              alt="Avatar usuario"
+              class="w-full h-full object-cover"
+            >
+          </div>
         </div>
 
       </div>
-    </div>
-  </nav>
+    </nav>
 
   <!-- CARGA -->
   <div v-if="isCheckingUser" class="flex-1 flex flex-col items-center justify-center animate-fade-in">
@@ -662,55 +702,216 @@
         <!-- =======================================================
           PROYECCIÓN / KPIS FLUJO DE CAJA
         ======================================================= -->
-        <div class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-2 mb-3 flex-shrink-0">
+        <div class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-1.5 mb-2 flex-shrink-0">
 
-          <div class="bg-white rounded-lg border border-gray-200 p-2 shadow-sm border-l-[3px] border-l-tema-4">
-            <p class="text-[8px] font-black uppercase tracking-widest text-gray-400">Ppto Entradas</p>
-            <p class="text-sm font-black text-tema-4">$ {{ formatInput(projectionTotals.presupuestoEntradas) }}</p>
+          <!-- PPTO ENTRADAS -->
+          <div class="bg-white rounded-xl border border-gray-200 p-2 shadow-sm border-l-[4px] border-l-tema-4 min-h-[74px] flex flex-col justify-between">
+            <div>
+              <div class="flex justify-between items-start gap-2">
+                <p class="text-[7px] font-black uppercase tracking-wide leading-none text-gray-400">Ppto Entradas</p>
+                <span class="material-symbols-outlined text-[15px] text-tema-4">south_west</span>
+              </div>
+
+              <p class="text-[14px] font-black tracking-tight whitespace-nowrap text-tema-4 leading-tight mt-1">
+                $ {{ formatInput(projectionTotals.presupuestoEntradas) }}
+              </p>
+            </div>
+
+            <div class="text-[7px] font-bold uppercase tracking-wide leading-none text-gray-400">
+              Base esperada
+            </div>
           </div>
 
-          <div class="bg-white rounded-lg border border-gray-200 p-2 shadow-sm border-l-[3px] border-l-tema-4">
-            <p class="text-[8px] font-black uppercase tracking-widest text-gray-400">Real Entradas</p>
-            <p class="text-sm font-black text-tema-4">$ {{ formatInput(projectionTotals.ejecutadoEntradas) }}</p>
+          <!-- REAL ENTRADAS -->
+          <div class="bg-white rounded-xl border border-gray-200 p-2 shadow-sm border-l-[4px] border-l-tema-4 min-h-[74px] flex flex-col justify-between">
+            <div>
+              <div class="flex justify-between items-start gap-2">
+                <p class="text-[7px] font-black uppercase tracking-wide leading-none text-gray-400">Real Entradas</p>
+                <span class="text-[8px] font-black leading-none" :class="getProjectionPctBarClass(projectionKpiMetrics.entradasPct, 'entrada').replace('bg-', 'text-')">
+                  {{ formatProjectionPct(projectionKpiMetrics.entradasPct) }}
+                </span>
+              </div>
+
+              <p class="text-[14px] font-black tracking-tight whitespace-nowrap text-tema-4 leading-tight mt-1">
+                $ {{ formatInput(projectionTotals.ejecutadoEntradas) }}
+              </p>
+            </div>
+
+            <div>
+              <div class="flex justify-between items-center text-[7px] font-bold mb-1">
+                <span class="text-gray-400 uppercase">Ejecución</span>
+                <span :class="getProjectionKpiDiffClass(projectionKpiMetrics.entradasDiff, 'entrada')">
+                  {{ formatProjectionDiffMoney(projectionKpiMetrics.entradasDiff) }}
+                </span>
+              </div>
+
+              <div class="w-full h-1 bg-gray-100 rounded-full overflow-hidden">
+                <div
+                  class="h-full rounded-full"
+                  :class="getProjectionPctBarClass(projectionKpiMetrics.entradasPct, 'entrada')"
+                  :style="{ width: getProjectionPctWidth(projectionKpiMetrics.entradasPct) + '%' }">
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div class="bg-white rounded-lg border border-gray-200 p-2 shadow-sm border-l-[3px] border-l-red-500">
-            <p class="text-[8px] font-black uppercase tracking-widest text-gray-400">Ppto Salidas</p>
-            <p class="text-sm font-black text-red-500">$ {{ formatInput(projectionTotals.presupuestoSalidas) }}</p>
+          <!-- PPTO SALIDAS -->
+          <div class="bg-white rounded-xl border border-gray-200 p-2 shadow-sm border-l-[4px] border-l-red-500 min-h-[74px] flex flex-col justify-between">
+            <div>
+              <div class="flex justify-between items-start gap-2">
+                <p class="text-[7px] font-black uppercase tracking-wide leading-none text-gray-400">Ppto Salidas</p>
+                <span class="material-symbols-outlined text-[13px] text-red-500">north_east</span>
+              </div>
+
+              <p class="text-[14px] font-black tracking-tight whitespace-nowrap text-red-500 leading-tight mt-1">
+                $ {{ formatInput(projectionTotals.presupuestoSalidas) }}
+              </p>
+            </div>
+
+            <div class="text-[7px] font-bold uppercase tracking-wide leading-none text-gray-400">
+              Límite planeado
+            </div>
           </div>
 
-          <div class="bg-white rounded-lg border border-gray-200 p-2 shadow-sm border-l-[3px] border-l-red-500">
-            <p class="text-[8px] font-black uppercase tracking-widest text-gray-400">Real Salidas</p>
-            <p class="text-sm font-black text-red-500">$ {{ formatInput(projectionTotals.ejecutadoSalidas) }}</p>
+          <!-- REAL SALIDAS -->
+          <div class="bg-white rounded-xl border border-gray-200 p-2 shadow-sm border-l-[4px] border-l-red-500 min-h-[74px] flex flex-col justify-between">
+            <div>
+              <div class="flex justify-between items-start gap-2">
+                <p class="text-[7px] font-black uppercase tracking-wide leading-none text-gray-400">Real Salidas</p>
+                <span class="text-[8px] font-black leading-none" :class="getProjectionPctBarClass(projectionKpiMetrics.salidasPct, 'salida').replace('bg-', 'text-')">
+                  {{ formatProjectionPct(projectionKpiMetrics.salidasPct) }}
+                </span>
+              </div>
+
+              <p class="text-[14px] font-black tracking-tight whitespace-nowrap text-red-500 leading-tight mt-1">
+                $ {{ formatInput(projectionTotals.ejecutadoSalidas) }}
+              </p>
+            </div>
+
+            <div>
+              <div class="flex justify-between items-center text-[7px] font-bold mb-1">
+                <span class="text-gray-400 uppercase">Consumo</span>
+                <span :class="getProjectionKpiDiffClass(projectionKpiMetrics.salidasDiff, 'salida')">
+                  {{ formatProjectionDiffMoney(projectionKpiMetrics.salidasDiff) }}
+                </span>
+              </div>
+
+              <div class="w-full h-1 bg-gray-100 rounded-full overflow-hidden">
+                <div
+                  class="h-full rounded-full"
+                  :class="getProjectionPctBarClass(projectionKpiMetrics.salidasPct, 'salida')"
+                  :style="{ width: getProjectionPctWidth(projectionKpiMetrics.salidasPct) + '%' }">
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div class="bg-white rounded-lg border border-gray-200 p-2 shadow-sm border-l-[3px] border-l-tema-1">
-            <p class="text-[8px] font-black uppercase tracking-widest text-gray-400">Neto Ppto</p>
-            <p class="text-sm font-black" :class="projectionTotals.netoPresupuesto >= 0 ? 'text-tema-4' : 'text-red-500'">
-              $ {{ formatInput(Math.abs(projectionTotals.netoPresupuesto)) }}
-            </p>
+          <!-- NETO PPTO -->
+          <div
+            class="bg-white rounded-xl border border-gray-200 p-2 shadow-sm border-l-[4px] min-h-[74px] flex flex-col justify-between"
+            :class="projectionTotals.netoPresupuesto >= 0 ? 'border-l-tema-1' : 'border-l-red-500'">
+
+            <div>
+              <div class="flex justify-between items-start gap-2">
+                <p class="text-[7px] font-black uppercase tracking-wide leading-none text-gray-400">Neto Ppto</p>
+                <span class="material-symbols-outlined text-[13px]" :class="getProjectionSignedValueClass(projectionTotals.netoPresupuesto)">
+                  account_balance_wallet
+                </span>
+              </div>
+
+              <p class="text-[14px] font-black tracking-tight whitespace-nowrap leading-tight mt-1" :class="getProjectionSignedValueClass(projectionTotals.netoPresupuesto)">
+                {{ formatProjectionSignedMoney(projectionTotals.netoPresupuesto) }}
+              </p>
+            </div>
+
+            <div class="text-[7px] font-bold uppercase tracking-wide leading-none text-gray-400">
+              Entradas - Salidas
+            </div>
           </div>
 
-          <div class="bg-white rounded-lg border border-gray-200 p-2 shadow-sm border-l-[3px] border-l-tema-5">
-            <p class="text-[8px] font-black uppercase tracking-widest text-gray-400">Neto Real</p>
-            <p class="text-sm font-black" :class="projectionTotals.netoEjecutado >= 0 ? 'text-tema-4' : 'text-red-500'">
-              $ {{ formatInput(Math.abs(projectionTotals.netoEjecutado)) }}
-            </p>
+          <!-- NETO REAL -->
+          <div
+            class="bg-white rounded-xl border border-gray-200 p-2 shadow-sm border-l-[4px] min-h-[92px] flex flex-col justify-between"
+            :class="projectionTotals.netoEjecutado >= 0 ? 'border-l-tema-4' : 'border-l-red-500'">
+
+            <div>
+              <div class="flex justify-between items-start gap-2">
+                <p class="text-[7px] font-black uppercase tracking-wide leading-none text-gray-400">Neto Real</p>
+                <span class="text-[8px] font-black leading-none" :class="getProjectionPctBarClass(projectionKpiMetrics.netoPct, 'neto').replace('bg-', 'text-')">
+                  {{ formatProjectionPct(projectionKpiMetrics.netoPct) }}
+                </span>
+              </div>
+
+              <p class="text-[14px] font-black tracking-tight whitespace-nowrap leading-tight mt-1" :class="getProjectionSignedValueClass(projectionTotals.netoEjecutado)">
+                {{ formatProjectionSignedMoney(projectionTotals.netoEjecutado) }}
+              </p>
+            </div>
+
+            <div>
+              <div class="flex justify-between items-center text-[7px] font-bold mb-1">
+                <span class="text-gray-400 uppercase">Vs Neto Ppto</span>
+                <span :class="getProjectionKpiDiffClass(projectionKpiMetrics.netoDiff, 'neto')">
+                  {{ formatProjectionDiffMoney(projectionKpiMetrics.netoDiff) }}
+                </span>
+              </div>
+
+              <div class="w-full h-1 bg-gray-100 rounded-full overflow-hidden">
+                <div
+                  class="h-full rounded-full"
+                  :class="getProjectionPctBarClass(projectionKpiMetrics.netoPct, 'neto')"
+                  :style="{ width: getProjectionPctWidth(projectionKpiMetrics.netoPct) + '%' }">
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div class="bg-white rounded-lg border border-gray-200 p-2 shadow-sm border-l-[3px] border-l-red-600">
-            <p class="text-[8px] font-black uppercase tracking-widest text-gray-400">No Presup. Salida</p>
-            <p class="text-sm font-black text-red-600">
-              $ {{ formatInput(projectionTotals.noPresupuestadoSalida) }}
-            </p>
-            <p class="text-[8px] text-gray-400 font-bold uppercase">
-              {{ projectionTotals.noPresupuestadoSalidaItems }} filas
-            </p>
+          <!-- NO PRESUPUESTADO SALIDA -->
+          <div class="bg-white rounded-xl border border-gray-200 p-2 shadow-sm border-l-[4px] border-l-red-600 min-h-[74px] flex flex-col justify-between">
+            <div>
+              <div class="flex justify-between items-start gap-2">
+                <p class="text-[7px] font-black uppercase tracking-wide leading-none text-gray-400">No Presup. Salida</p>
+                <span class="text-[8px] font-black leading-none text-red-500">
+                  {{ formatProjectionPct(projectionKpiMetrics.noPresupuestadoSalidaPct) }}
+                </span>
+              </div>
+
+              <p class="text-[15px] font-black text-red-600 leading-tight mt-1">
+                $ {{ formatInput(projectionTotals.noPresupuestadoSalida) }}
+              </p>
+            </div>
+
+            <div class="flex justify-between items-center text-[7px] font-bold uppercase tracking-wide leading-none">
+              <span class="text-gray-400">{{ projectionTotals.noPresupuestadoSalidaItems }} filas</span>
+              <span class="text-red-400">Sin ppto</span>
+            </div>
           </div>
 
-          <div class="bg-white rounded-lg border border-gray-200 p-2 shadow-sm border-l-[3px] border-l-orange-400">
-            <p class="text-[8px] font-black uppercase tracking-widest text-gray-400">Alertas</p>
-            <p class="text-sm font-black text-orange-500">{{ projectionTotals.alertas }}</p>
+          <!-- ALERTAS -->
+          <div class="bg-white rounded-xl border border-gray-200 p-2 shadow-sm border-l-[4px] border-l-orange-400 min-h-[74px] flex flex-col justify-between">
+            <div>
+              <div class="flex justify-between items-start gap-2">
+                <p class="text-[7px] font-black uppercase tracking-wide leading-none text-gray-400">Alertas</p>
+                <span class="material-symbols-outlined text-[13px] text-orange-500">warning</span>
+              </div>
+
+              <p class="text-[14px] font-black tracking-tight whitespace-nowrap text-orange-500 leading-tight mt-1">
+                {{ projectionTotals.alertas }}
+              </p>
+            </div>
+
+            <div>
+              <div class="flex justify-between items-center text-[7px] font-bold mb-1">
+                <span class="text-gray-400 uppercase">Sobre items</span>
+                <span class="text-orange-500">{{ formatProjectionPct(projectionKpiMetrics.alertasPct) }}</span>
+              </div>
+
+              <div class="w-full h-1 bg-gray-100 rounded-full overflow-hidden">
+                <div
+                  class="h-full rounded-full bg-orange-400"
+                  :style="{ width: getProjectionPctWidth(projectionKpiMetrics.alertasPct) + '%' }">
+                </div>
+              </div>
+            </div>
           </div>
 
         </div>
