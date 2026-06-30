@@ -823,6 +823,7 @@ new Vue({
     projectionCurrentPeriodLabel() {
       const map = {
         mes: 'Mes actual',
+        mes_siguiente: 'Mes siguiente',
         mes_anterior: 'Mes anterior',
         ytd: 'Año a la fecha',
         año: 'Año actual',
@@ -2138,6 +2139,11 @@ new Vue({
         case 'mes':
           start = new Date(y, m, 1);
           end = new Date(y, m + 1, 0);
+          break;
+        
+        case 'mes_siguiente':
+          start = new Date(y, m + 1, 1);
+          end = new Date(y, m + 2, 0);
           break;
 
         case 'mes_anterior':
