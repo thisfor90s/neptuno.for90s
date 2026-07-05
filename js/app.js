@@ -1193,8 +1193,8 @@ new Vue({
       };
 
       return {
-        entradasPct: pctAbs(t.ejecutadoEntradas, t.presupuestoEntradas),
-        salidasPct: pctAbs(t.ejecutadoSalidas, t.presupuestoSalidas),
+        entradasPct: pctSigned(t.ejecutadoEntradas, t.presupuestoEntradas),
+        salidasPct: pctSigned(t.ejecutadoSalidas, t.presupuestoSalidas),
         netoPct: pctSigned(t.netoEjecutado, t.netoPresupuesto),
 
         entradasDiff: t.ejecutadoEntradas - t.presupuestoEntradas,
@@ -2331,9 +2331,25 @@ new Vue({
     // =====================================================
     getProjectionComparableValue(tipo, valor) {
       const num = Number(valor) || 0;
+      const tipoNorm = this.normalizeProjectionValue(tipo);
+
+      // Ingreso siempre es ENTRADA, pero respeta signo.
+      // 100.000 + (-50.000) = 50.000
+      if (tipoNorm === 'ingreso') {
+        return num;
+      }
+
+      // Gasto siempre es SALIDA, pero respeta signo.
+      // 100.000 + (-50.000) = 50.000
+      if (tipoNorm === 'gasto') {
+        return num;
+      }
+
+      // Activo y Pasivo usan magnitud porque el signo ya define el flujo:
+      // Activo + = salida, Activo - = entrada
+      // Pasivo + = entrada, Pasivo - = salida
       return Math.abs(num);
     },
-
 
     // =====================================================
     // PROYECCIÓN / ALERTAS POR FLUJO
