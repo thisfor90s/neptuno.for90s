@@ -718,7 +718,33 @@
 
           </div>
         </div>
+        
+        <!-- =======================================================
+          PROYECCIÓN / BOTÓN KPIS MÓVIL
+        ======================================================= -->
+        <div class="md:hidden mb-2 flex-shrink-0">
+          <button
+            @click="showProjectionCashFlowSummary = !showProjectionCashFlowSummary"
+            class="w-full bg-tema-1 text-white rounded-lg px-3 py-2 shadow-sm flex items-center justify-between">
 
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-[17px]">monitoring</span>
+
+              <div class="flex flex-col items-start leading-none">
+                <span class="text-[10px] font-black uppercase tracking-widest">
+                  Resumen Cash Flow
+                </span>
+                <span class="text-[8px] font-bold text-white/60 mt-1">
+                  KPIs, alertas y no presupuestado
+                </span>
+              </div>
+            </div>
+
+            <span class="material-symbols-outlined text-[18px]">
+              {{ showProjectionCashFlowSummary ? 'expand_less' : 'expand_more' }}
+            </span>
+          </button>
+        </div>
         
         <!-- =======================================================
           PROYECCIÓN / SKELETON
@@ -1139,11 +1165,14 @@
         <!-- =======================================================
           PROYECCIÓN / CASH FLOW KPIS INFERIORES
         ======================================================= -->
-        <div class="mt-2 flex-shrink-0">
+        <div
+          class="mt-2 flex-shrink-0"
+          :class="!isDesktopView && showProjectionCashFlowSummary ? 'fixed inset-x-3 bottom-3 z-40 max-h-[72vh]' : ''"
+        >
 
           <button
             @click="showProjectionCashFlowSummary = !showProjectionCashFlowSummary"
-            class="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 shadow-sm flex items-center justify-between text-tema-1 hover:bg-tema-bg transition-all">
+            class="hidden md:flex w-full bg-white border border-gray-300 rounded-lg px-3 py-2 shadow-sm items-center justify-between text-tema-1 hover:bg-tema-bg transition-all">
 
             <div class="flex items-center gap-2">
               <span class="material-symbols-outlined text-[17px]">monitoring</span>
@@ -1167,9 +1196,27 @@
 
           <div
             v-if="showProjectionCashFlowSummary"
-            class="mt-2 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2 max-h-[42vh] overflow-y-auto pr-1">
+            class="mt-2 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2 max-h-[72vh] md:max-h-[42vh] overflow-y-auto pr-1 bg-white md:bg-transparent rounded-xl md:rounded-none border md:border-0 border-gray-200 shadow-2xl md:shadow-none p-2 md:p-0">
 
-            <!-- Tarjetas base -->
+            <!-- HEADER MÓVIL DEL PANEL -->
+            <div class="md:hidden col-span-1 sm:col-span-2 flex items-center justify-between mb-1 border-b border-gray-100 pb-2">
+              <div>
+                <p class="text-[10px] font-black uppercase tracking-widest text-tema-1">
+                  Resumen Cash Flow
+                </p>
+                <p class="text-[8px] font-bold text-gray-400 mt-0.5">
+                  KPIs, alertas y no presupuestado
+                </p>
+              </div>
+
+              <button
+                @click="showProjectionCashFlowSummary = false"
+                class="w-7 h-7 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center">
+                <span class="material-symbols-outlined text-[16px]">close</span>
+              </button>
+            </div>
+
+            <!-- TARJETAS BASE: ENTRADAS, SALIDAS, INGRESOS, GASTOS -->
             <div
               v-for="card in projectionCashFlowCards"
               :key="'cash-card-' + card.key"
@@ -1187,9 +1234,12 @@
                 </div>
 
                 <div class="flex items-center gap-1">
-                  <span class="text-[9px] font-black" :class="getProjectionPctBarClass(card.metric.pct, card.mode).replace('bg-', 'text-')">
+                  <span
+                    class="text-[9px] font-black"
+                    :class="getProjectionPctBarClass(card.metric.pct, card.mode).replace('bg-', 'text-')">
                     {{ formatProjectionPct(card.metric.pct) }}
                   </span>
+
                   <span class="material-symbols-outlined text-[15px]" :class="card.iconClass">
                     {{ card.icon }}
                   </span>
@@ -1258,11 +1308,16 @@
                   <div class="grid grid-cols-2 gap-2 mt-2">
                     <div>
                       <p class="text-[7px] font-black uppercase text-gray-400">Ppto</p>
-                      <p class="text-[11px] font-black text-red-500">{{ formatProjectionSignedMoney(projectionCashFlowMetrics.pasivosPago.presupuesto) }}</p>
+                      <p class="text-[11px] font-black text-red-500">
+                        {{ formatProjectionSignedMoney(projectionCashFlowMetrics.pasivosPago.presupuesto) }}
+                      </p>
                     </div>
+
                     <div>
                       <p class="text-[7px] font-black uppercase text-gray-400">Real</p>
-                      <p class="text-[11px] font-black text-red-500">{{ formatProjectionSignedMoney(projectionCashFlowMetrics.pasivosPago.ejecutado) }}</p>
+                      <p class="text-[11px] font-black text-red-500">
+                        {{ formatProjectionSignedMoney(projectionCashFlowMetrics.pasivosPago.ejecutado) }}
+                      </p>
                     </div>
                   </div>
 
@@ -1286,11 +1341,16 @@
                   <div class="grid grid-cols-2 gap-2 mt-2">
                     <div>
                       <p class="text-[7px] font-black uppercase text-gray-400">Ppto</p>
-                      <p class="text-[11px] font-black text-tema-4">{{ formatProjectionSignedMoney(projectionCashFlowMetrics.pasivosDeuda.presupuesto) }}</p>
+                      <p class="text-[11px] font-black text-tema-4">
+                        {{ formatProjectionSignedMoney(projectionCashFlowMetrics.pasivosDeuda.presupuesto) }}
+                      </p>
                     </div>
+
                     <div>
                       <p class="text-[7px] font-black uppercase text-gray-400">Real</p>
-                      <p class="text-[11px] font-black text-tema-4">{{ formatProjectionSignedMoney(projectionCashFlowMetrics.pasivosDeuda.ejecutado) }}</p>
+                      <p class="text-[11px] font-black text-tema-4">
+                        {{ formatProjectionSignedMoney(projectionCashFlowMetrics.pasivosDeuda.ejecutado) }}
+                      </p>
                     </div>
                   </div>
 
@@ -1306,7 +1366,8 @@
             </div>
 
             <!-- CASH FLOW -->
-            <div class="bg-white rounded-lg border border-gray-200 p-2 shadow-sm border-l-[4px]"
+            <div
+              class="bg-white rounded-lg border border-gray-200 p-2 shadow-sm border-l-[4px]"
               :class="projectionCashFlowMetrics.cashFlow.ejecutado >= 0 ? 'border-l-tema-4' : 'border-l-red-500'">
 
               <div class="flex justify-between items-start gap-2">
@@ -1319,7 +1380,9 @@
                   </p>
                 </div>
 
-                <span class="text-[9px] font-black" :class="getProjectionPctBarClass(projectionCashFlowMetrics.cashFlow.pct, 'neto').replace('bg-', 'text-')">
+                <span
+                  class="text-[9px] font-black"
+                  :class="getProjectionPctBarClass(projectionCashFlowMetrics.cashFlow.pct, 'neto').replace('bg-', 'text-')">
                   {{ formatProjectionPct(projectionCashFlowMetrics.cashFlow.pct) }}
                 </span>
               </div>
@@ -1327,14 +1390,18 @@
               <div class="grid grid-cols-2 gap-2 mt-2">
                 <div>
                   <p class="text-[7px] font-black uppercase text-gray-400 leading-none">Ppto</p>
-                  <p class="text-[12px] font-black tracking-tight leading-tight mt-1" :class="getProjectionSignedValueClass(projectionCashFlowMetrics.cashFlow.presupuesto)">
+                  <p
+                    class="text-[12px] font-black tracking-tight leading-tight mt-1"
+                    :class="getProjectionSignedValueClass(projectionCashFlowMetrics.cashFlow.presupuesto)">
                     {{ formatProjectionSignedMoney(projectionCashFlowMetrics.cashFlow.presupuesto) }}
                   </p>
                 </div>
 
                 <div>
                   <p class="text-[7px] font-black uppercase text-gray-400 leading-none">Real</p>
-                  <p class="text-[12px] font-black tracking-tight leading-tight mt-1" :class="getProjectionSignedValueClass(projectionCashFlowMetrics.cashFlow.ejecutado)">
+                  <p
+                    class="text-[12px] font-black tracking-tight leading-tight mt-1"
+                    :class="getProjectionSignedValueClass(projectionCashFlowMetrics.cashFlow.ejecutado)">
                     {{ formatProjectionSignedMoney(projectionCashFlowMetrics.cashFlow.ejecutado) }}
                   </p>
                 </div>
