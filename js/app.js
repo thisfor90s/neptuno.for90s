@@ -1,3 +1,10 @@
+// =====================================================
+// CONFIGURACIÓN GLOBAL DE VISTA INICIAL
+// Cambia aquí a 'dashboard' si quieres volver al dashboard.
+// Opciones: 'proyeccion', 'dashboard', 'tesoreria', 'lista', 'registrarPG', 'flash'
+// =====================================================
+const DEFAULT_ACTIVE_VIEW = 'proyeccion';
+
 new Vue({
   el: '#app',
 
@@ -17,7 +24,7 @@ new Vue({
     isSidebarOpen: false,
     showSidebar: false,
     isDesktopView: true,
-    activeView: 'dashboard',
+    activeView: DEFAULT_ACTIVE_VIEW,
 
     isLoadingFormData: false,
     isSavingPG: false,
@@ -1558,7 +1565,7 @@ new Vue({
     openDashboard() {
       this.resetFilters();
       this.activeView = 'dashboard';
-      this.fetchListData();
+      this.fetchInitialDashboardData();
     },
 
     getDiff(medio) {
@@ -1768,27 +1775,75 @@ new Vue({
       });
     },
 
-    async verifyInitialUser() {
-      if (this.isAuthenticated && (this.activeView === 'dashboard' || this.activeView === 'tesoreria' || this.activeView === 'lista')) {
+    // =====================================================
+    // CARGA CENTRALIZADA POR VISTA
+    // Permite cambiar DEFAULT_ACTIVE_VIEW sin romper cargas
+    // =====================================================
+    prepareActiveViewLoader(view = this.activeView) {
+      if (view === 'dashboard' || view === 'tesoreria' || view === 'lista') {
         this.isLoadingList = true;
       }
 
+      if (view === 'proyeccion') {
+        this.isLoadingProjection = true;
+      }
+    },
+
+    async loadActiveViewData(view = this.activeView) {
+      if (view === 'dashboard') {
+        // En dashboard no bloqueamos por datos de formulario.
+        this.fetchFormData();
+        await this.fetchInitialDashboardData();
+        return;
+      }
+
+      if (view === 'tesoreria' || view === 'lista') {
+        if (!this.dbTablaPG.length || !this.dbTerceros.length) {
+          await this.fetchFormData();
+        }
+
+        await this.fetchListData();
+        return;
+      }
+
+      if (view === 'proyeccion') {
+        if (!this.dbTablaPG.length || !this.dbTerceros.length) {
+          await this.fetchFormData();
+        }
+
+        await this.fetchProjectionData();
+        return;
+      }
+
+      if (view === 'registrarPG' || view === 'flash') {
+        await this.fetchFormData();
+      }
+    },
+
+    async verifyInitialUser() {
+      if (!this.isAuthenticated) {
+        this.isCheckingUser = false;
+        return;
+      }
+
+      this.prepareActiveViewLoader(this.activeView);
       this.isCheckingUser = false;
 
-      if (this.isAuthenticated) {
-        await this.fetchFormData();
+      try {
+        this.logAccess();
 
-        await this.fetchFormData();
-          this.logAccess();
-
-          if (this.activeView === 'dashboard') {
-            await this.fetchInitialDashboardData();
-          } else if (this.activeView === 'tesoreria' || this.activeView === 'lista') {
-            await this.fetchListData();
-          }
+        await this.loadActiveViewData(this.activeView);
 
         this.bindActivityListeners();
         this.startInactivityTimer();
+
+      } catch (error) {
+        console.error(error);
+        this.failedErrorMessage = 'Error cargando la vista inicial';
+        this.showErrorModal = true;
+      } finally {
+        this.isLoadingList = false;
+        this.isLoadingProjection = false;
       }
     },
 
@@ -1814,45 +1869,31 @@ new Vue({
 
         this.isLoggingIn = false;
 
-        if (response.success) {
-          this.userName = response.data.user.name || '';
-
-          if (this.activeView === 'dashboard' || this.activeView === 'tesoreria' || this.activeView === 'lista') {
-            this.isLoadingList = true;
-          }
-
-          if (this.activeView === 'proyeccion') {
-            this.isLoadingProjection = true;
-          }
-
-          this.isAuthenticated = true;
-
-          if (this.activeView === 'dashboard') {
-            this.fetchFormData();
-            this.logAccess();
-            await this.fetchInitialDashboardData();
-          } else {
-            await this.fetchFormData();
-            this.logAccess();
-
-            if (this.activeView === 'tesoreria' || this.activeView === 'lista') {
-              await this.fetchListData();
-            }
-
-            if (this.activeView === 'proyeccion') {
-              await this.fetchProjectionData();
-            }
-          }
-
-          this.bindActivityListeners();
-          this.startInactivityTimer();
-        } else {
+        if (!response.success) {
           this.loginError = response.message || 'Credenciales inválidas';
+          return;
         }
+
+        this.userName = response.data.user.name || '';
+
+        this.prepareActiveViewLoader(this.activeView);
+
+        this.isAuthenticated = true;
+
+        this.logAccess();
+
+        await this.loadActiveViewData(this.activeView);
+
+        this.bindActivityListeners();
+        this.startInactivityTimer();
+
       } catch (error) {
         this.isLoggingIn = false;
         this.loginError = 'No se pudo conectar con el servidor';
         console.error(error);
+      } finally {
+        this.isLoadingList = false;
+        this.isLoadingProjection = false;
       }
     },
 
