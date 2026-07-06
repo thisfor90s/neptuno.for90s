@@ -98,6 +98,10 @@ new Vue({
     projectionDeletedRows: {},
     projectionTasks: {},
 
+    // UX Proyección
+    showProjectionCashFlowSummary: false,
+    projectionFiltersOpen: false,
+
     projectionCopyModal: {
       show: false,
       targetDate: new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' })
@@ -1209,6 +1213,151 @@ new Vue({
           ? (t.alertas / this.projectionTableRowsFiltered.length) * 100
           : 0
       };
+    },
+
+    // =====================================================
+    // PROYECCIÓN / CASH FLOW KPI CONSOLIDADO
+    // Rediseño visual: no cambia cálculos base
+    // =====================================================
+    projectionCashFlowMetrics() {
+      const rows = this.projectionTableRowsFiltered.filter(row =>
+        !this.projectionDeletedRows[row.key]
+      );
+
+      const buildMetric = function(presupuesto, ejecutado) {
+        presupuesto = Number(presupuesto) || 0;
+        ejecutado = Number(ejecutado) || 0;
+
+        const diff = ejecutado - presupuesto;
+
+        const pct = presupuesto
+          ? (ejecutado / presupuesto) * 100
+          : (ejecutado ? 999 : 0);
+
+        return {
+          presupuesto: presupuesto,
+          ejecutado: ejecutado,
+          diff: diff,
+          pct: pct
+        };
+      };
+
+      const sum = function(filterFn, field) {
+        return rows
+          .filter(filterFn)
+          .reduce((acc, row) => acc + (Number(row[field]) || 0), 0);
+      };
+
+      const norm = value => this.normalizeProjectionValue(value);
+
+      const isEntrada = row => row.flujo === 'entrada';
+      const isSalida = row => row.flujo === 'salida';
+
+      const isIngreso = row => norm(row.tipo) === 'ingreso';
+      const isGasto = row => norm(row.tipo) === 'gasto';
+
+      const isPasivoPago = row =>
+        norm(row.tipo) === 'pasivo' && row.flujo === 'salida';
+
+      const isPasivoDeuda = row =>
+        norm(row.tipo) === 'pasivo' && row.flujo === 'entrada';
+
+      const t = this.projectionTotals;
+
+      return {
+        entradas: buildMetric(
+          sum(isEntrada, 'presupuesto'),
+          sum(isEntrada, 'ejecutado')
+        ),
+
+        salidas: buildMetric(
+          sum(isSalida, 'presupuesto'),
+          sum(isSalida, 'ejecutado')
+        ),
+
+        ingresos: buildMetric(
+          sum(isIngreso, 'presupuesto'),
+          sum(isIngreso, 'ejecutado')
+        ),
+
+        gastos: buildMetric(
+          sum(isGasto, 'presupuesto'),
+          sum(isGasto, 'ejecutado')
+        ),
+
+        pasivosPago: buildMetric(
+          sum(isPasivoPago, 'presupuesto'),
+          sum(isPasivoPago, 'ejecutado')
+        ),
+
+        pasivosDeuda: buildMetric(
+          sum(isPasivoDeuda, 'presupuesto'),
+          sum(isPasivoDeuda, 'ejecutado')
+        ),
+
+        cashFlow: buildMetric(
+          t.netoPresupuesto,
+          t.netoEjecutado
+        ),
+
+        noPresupuestadoSalida: t.noPresupuestadoSalida,
+        noPresupuestadoSalidaItems: t.noPresupuestadoSalidaItems,
+        noPresupuestadoSalidaPct: this.projectionKpiMetrics.noPresupuestadoSalidaPct,
+
+        alertas: t.alertas,
+        alertasPct: this.projectionKpiMetrics.alertasPct
+      };
+    },
+
+    projectionCashFlowCards() {
+      const m = this.projectionCashFlowMetrics;
+
+      return [
+        {
+          key: 'entradas',
+          title: 'Entradas total',
+          subtitle: 'Todo flujo de entrada',
+          icon: 'south_west',
+          mode: 'entrada',
+          borderClass: 'border-l-tema-4',
+          iconClass: 'text-tema-4',
+          valueClass: 'text-tema-4',
+          metric: m.entradas
+        },
+        {
+          key: 'salidas',
+          title: 'Salidas total',
+          subtitle: 'Todo flujo de salida',
+          icon: 'north_east',
+          mode: 'salida',
+          borderClass: 'border-l-red-500',
+          iconClass: 'text-red-500',
+          valueClass: 'text-red-500',
+          metric: m.salidas
+        },
+        {
+          key: 'ingresos',
+          title: 'Ingresos',
+          subtitle: 'Solo tipo Ingreso',
+          icon: 'attach_money',
+          mode: 'entrada',
+          borderClass: 'border-l-green-500',
+          iconClass: 'text-green-600',
+          valueClass: 'text-green-600',
+          metric: m.ingresos
+        },
+        {
+          key: 'gastos',
+          title: 'Gastos',
+          subtitle: 'Solo tipo Gasto',
+          icon: 'money_off',
+          mode: 'salida',
+          borderClass: 'border-l-red-500',
+          iconClass: 'text-red-500',
+          valueClass: 'text-red-500',
+          metric: m.gastos
+        }
+      ];
     },
 
     // =====================================================
@@ -2565,12 +2714,13 @@ new Vue({
 
       this.$set(this.projectionEditingRows, row.key, true);
 
-      if (row.isVirtual) {
-        this.queueProjectionDraft(row);
-      }
+      // Importante:
+      // Ya NO hacemos queueProjectionDraft(row) aquí.
+      // La fila se compromete solo en blur, check o guardar cambios.
     },
 
     closeProjectionRowEdit(row) {
+      this.commitProjectionDraft(row);
       this.$delete(this.projectionEditingRows, row.key);
     },
 
@@ -2597,7 +2747,8 @@ new Vue({
       this.projectionDrafts[row.key].grupo = '';
       this.projectionDrafts[row.key].categoria = '';
 
-      this.queueProjectionDraft(row);
+      // No hacemos commit aquí.
+      // Solo modificamos el draft local.
     },
 
     onProjectionDraftGrupoChange(row) {
@@ -2605,7 +2756,38 @@ new Vue({
 
       this.projectionDrafts[row.key].categoria = '';
 
+      // No hacemos commit aquí.
+      // Solo modificamos el draft local.
+    },
+
+    // =====================================================
+    // PROYECCIÓN / COMMIT DE DRAFT
+    // Único punto que confirma cambios y dispara recálculo/sort.
+    // =====================================================
+    commitProjectionDraft(row) {
+      if (!row || !this.projectionDrafts[row.key]) return;
+
       this.queueProjectionDraft(row);
+    },
+
+    commitProjectionValueDraft(row) {
+      if (!row || !this.projectionDrafts[row.key]) return;
+
+      this.projectionDrafts[row.key].valor = this.handleValorBlur(
+        this.projectionDrafts[row.key].valor
+      );
+
+      this.commitProjectionDraft(row);
+    },
+
+    commitAllProjectionEditingRows() {
+      const rows = [...this.projectionTableRowsFiltered];
+
+      rows.forEach(row => {
+        if (this.isProjectionRowEditing(row)) {
+          this.commitProjectionDraft(row);
+        }
+      });
     },
 
     queueProjectionDraft(row) {
@@ -2719,6 +2901,10 @@ new Vue({
     // Envía creates, updates y deletes al Apps Script
     // =====================================================
     async saveProjectionTasks() {
+      // Si el usuario está editando y da clic directo en Guardar,
+      // primero confirmamos los drafts abiertos.
+      this.commitAllProjectionEditingRows();
+
       if (!this.projectionPendingTasksList.length) return;
 
       const validationErrors = this.validateProjectionTasksBeforeSave();
@@ -2962,6 +3148,34 @@ new Vue({
       }
 
       return num > 0 ? 'text-tema-4' : 'text-red-500';
+    },
+
+    getProjectionMetricDiffClass(metric, mode) {
+      if (!metric) return 'text-gray-400';
+
+      return this.getProjectionKpiDiffClass(metric.diff, mode);
+    },
+
+    getProjectionMobileBalanceValue(row) {
+      if (!row) return 0;
+
+      if (row.flujo === 'salida') {
+        return (Number(row.presupuesto) || 0) - (Number(row.ejecutado) || 0);
+      }
+
+      return (Number(row.ejecutado) || 0) - (Number(row.presupuesto) || 0);
+    },
+
+    getProjectionMobileBalanceClass(row) {
+      const value = this.getProjectionMobileBalanceValue(row);
+
+      if (value === 0) return 'text-gray-400';
+
+      if (row.flujo === 'salida') {
+        return value >= 0 ? 'text-tema-4' : 'text-red-500';
+      }
+
+      return value >= 0 ? 'text-tema-4' : 'text-red-500';
     },
   }
 });
