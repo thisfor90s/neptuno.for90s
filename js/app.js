@@ -1057,7 +1057,7 @@ new Vue({
             ? porcentaje.toFixed(1) + '%'
             : (row.ejecutado > 0 ? 'Sin ppto' : '0.0%'),
           diferencia: diferencia,
-          alerta: this.getProjectionAlert(row.flujo, porcentaje, row.presupuesto, row.ejecutado)
+          alerta: this.getProjectionAlert(row.tipo, row.flujo, porcentaje, row.presupuesto, row.ejecutado)
         };
       }).sort((a, b) => {
         // Las filas nuevas pendientes siempre arriba
@@ -1412,7 +1412,7 @@ new Vue({
           title: 'Ingresos',
           subtitle: 'Solo tipo Ingreso',
           icon: 'attach_money',
-          mode: 'entrada',
+          mode: 'ingreso',
           borderClass: 'border-l-green-500',
           iconClass: 'text-green-600',
           valueClass: 'text-green-600',
@@ -1423,7 +1423,7 @@ new Vue({
           title: 'Gastos',
           subtitle: 'Solo tipo Gasto',
           icon: 'money_off',
-          mode: 'salida',
+          mode: 'gasto',
           borderClass: 'border-l-red-500',
           iconClass: 'text-red-500',
           valueClass: 'text-red-500',
@@ -1689,151 +1689,358 @@ new Vue({
     },
 
     renderCharts() {
-      const ctxPyg = document.getElementById('chartPyg');
-      const ctxPasivos = document.getElementById('chartPasivos');
+      const canvasPyg = document.getElementById('chartPyg');
+      const canvasPasivos = document.getElementById('chartPasivos');
 
-      if (!ctxPyg || !ctxPasivos) return;
+      if (!canvasPyg || !canvasPasivos) return;
 
       if (this.chartPygInstance) this.chartPygInstance.destroy();
       if (this.chartPasivosInstance) this.chartPasivosInstance.destroy();
 
       const cData = this.dashboardChartsData;
 
+      const ctxPyg = canvasPyg.getContext('2d');
+      const ctxPasivos = canvasPasivos.getContext('2d');
+
       const compactFormatter = function(value) {
         return new Intl.NumberFormat('es-CO', {
           notation: 'compact',
-          compactDisplay: 'short'
+          compactDisplay: 'short',
+          maximumFractionDigits: 1
         }).format(value);
       };
 
+      const moneyFormatter = function(value) {
+        return '$ ' + new Intl.NumberFormat('es-CO', {
+          maximumFractionDigits: 0
+        }).format(value);
+      };
+
+      const gradientIngresos = ctxPyg.createLinearGradient(0, 0, 0, 260);
+      gradientIngresos.addColorStop(0, 'rgba(135, 216, 194, 0.95)');
+      gradientIngresos.addColorStop(1, 'rgba(135, 216, 194, 0.35)');
+
+      const gradientGastos = ctxPyg.createLinearGradient(0, 0, 0, 260);
+      gradientGastos.addColorStop(0, 'rgba(239, 68, 68, 0.95)');
+      gradientGastos.addColorStop(1, 'rgba(239, 68, 68, 0.35)');
+
+      const gradientUtilidad = ctxPyg.createLinearGradient(0, 0, 0, 260);
+      gradientUtilidad.addColorStop(0, 'rgba(86, 174, 217, 0.22)');
+      gradientUtilidad.addColorStop(1, 'rgba(86, 174, 217, 0.02)');
+
+      const gradientPasivos = ctxPasivos.createLinearGradient(0, 0, 0, 260);
+      gradientPasivos.addColorStop(0, 'rgba(249, 115, 22, 0.22)');
+      gradientPasivos.addColorStop(1, 'rgba(249, 115, 22, 0.02)');
+
+      const gradientMovimiento = ctxPasivos.createLinearGradient(0, 0, 0, 260);
+      gradientMovimiento.addColorStop(0, 'rgba(1, 51, 98, 0.22)');
+      gradientMovimiento.addColorStop(1, 'rgba(1, 51, 98, 0.06)');
+
+      const baseChartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          mode: 'index',
+          intersect: false
+        },
+        animation: {
+          duration: 650,
+          easing: 'easeOutQuart'
+        },
+        layout: {
+          padding: {
+            top: 8,
+            right: 8,
+            bottom: 0,
+            left: 4
+          }
+        },
+        plugins: {
+          legend: {
+            position: 'top',
+            align: 'center',
+            labels: {
+              usePointStyle: true,
+              pointStyle: 'circle',
+              boxWidth: 7,
+              boxHeight: 7,
+              padding: 16,
+              color: '#6B7280',
+              font: {
+                size: 11,
+                weight: '700'
+              }
+            }
+          },
+          tooltip: {
+            enabled: true,
+            backgroundColor: 'rgba(7, 8, 6, 0.88)',
+            titleColor: '#FFFFFF',
+            bodyColor: '#FFFFFF',
+            borderColor: 'rgba(255,255,255,0.12)',
+            borderWidth: 1,
+            padding: 11,
+            cornerRadius: 10,
+            displayColors: true,
+            boxWidth: 8,
+            boxHeight: 8,
+            titleFont: {
+              size: 11,
+              weight: '800'
+            },
+            bodyFont: {
+              size: 11,
+              weight: '700'
+            }
+          }
+        }
+      };
+
       this.chartPygInstance = new Chart(ctxPyg, {
-        type: 'bar',
         data: {
           labels: cData.labels,
           datasets: [
+            {
+              label: 'Ingresos',
+              type: 'bar',
+              data: cData.ingresos,
+              backgroundColor: gradientIngresos,
+              borderColor: '#87D8C2',
+              borderWidth: 1,
+              borderRadius: 8,
+              borderSkipped: false,
+              barThickness: 18,
+              maxBarThickness: 22,
+              order: 3,
+              yAxisID: 'money'
+            },
+            {
+              label: 'Gastos',
+              type: 'bar',
+              data: cData.gastos,
+              backgroundColor: gradientGastos,
+              borderColor: '#EF4444',
+              borderWidth: 1,
+              borderRadius: 8,
+              borderSkipped: false,
+              barThickness: 18,
+              maxBarThickness: 22,
+              order: 3,
+              yAxisID: 'money'
+            },
             {
               label: '% Utilidad',
               type: 'line',
               data: cData.utilidadPct,
               borderColor: '#56AED9',
-              backgroundColor: '#56AED9',
-              borderWidth: 2,
-              yAxisID: 'y1',
-              tension: 0.3,
-              pointRadius: 3
-            },
-            {
-              label: 'Ingresos',
-              data: cData.ingresos,
-              backgroundColor: '#87D8C2',
-              borderRadius: 2,
-              yAxisID: 'y'
-            },
-            {
-              label: 'Gastos',
-              data: cData.gastos,
-              backgroundColor: '#EF4444',
-              borderRadius: 2,
-              yAxisID: 'y'
+              backgroundColor: gradientUtilidad,
+              pointBackgroundColor: '#FFFFFF',
+              pointBorderColor: '#56AED9',
+              pointBorderWidth: 2,
+              pointRadius: 3.5,
+              pointHoverRadius: 5,
+              borderWidth: 2.5,
+              tension: 0.42,
+              fill: true,
+              order: 1,
+              yAxisID: 'percent'
             }
           ]
         },
         options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          interaction: { mode: 'index', intersect: false },
+          ...baseChartOptions,
           plugins: {
-            legend: { position: 'top', labels: { boxWidth: 10, font: { size: 10 } } },
+            ...baseChartOptions.plugins,
             tooltip: {
+              ...baseChartOptions.plugins.tooltip,
               callbacks: {
                 label: function(context) {
-                  let label = context.dataset.label || '';
-                  if (label) label += ': ';
-                  if (context.dataset.yAxisID === 'y1') label += context.parsed.y.toFixed(1) + '%';
-                  else label += '$' + new Intl.NumberFormat('es-CO').format(context.parsed.y);
-                  return label;
+                  const label = context.dataset.label || '';
+                  const value = context.parsed.y || 0;
+
+                  if (context.dataset.yAxisID === 'percent') {
+                    return label + ': ' + value.toFixed(1) + '%';
+                  }
+
+                  return label + ': ' + moneyFormatter(value);
                 }
               }
             }
           },
           scales: {
-            x: { grid: { display: false }, ticks: { font: { size: 9 } } },
-            y: {
-              type: 'linear',
-              display: true,
-              position: 'right',
-              grid: { borderDash: [2, 4], color: '#E5E7EB' },
-              ticks: { font: { size: 9 }, callback: compactFormatter }
+            x: {
+              grid: {
+                display: false
+              },
+              ticks: {
+                color: '#6B7280',
+                maxRotation: 35,
+                minRotation: 35,
+                font: {
+                  size: 10,
+                  weight: '700'
+                }
+              },
+              border: {
+                display: false
+              }
             },
-            y1: {
+            money: {
               type: 'linear',
-              display: true,
+              position: 'right',
+              beginAtZero: true,
+              grid: {
+                color: 'rgba(1, 51, 98, 0.08)',
+                drawBorder: false
+              },
+              border: {
+                display: false
+              },
+              ticks: {
+                color: '#6B7280',
+                padding: 8,
+                font: {
+                  size: 10,
+                  weight: '700'
+                },
+                callback: compactFormatter
+              }
+            },
+            percent: {
+              type: 'linear',
               position: 'left',
-              grid: { display: false },
-              ticks: { font: { size: 9 }, callback: function(v) { return v + '%'; } }
+              grid: {
+                drawOnChartArea: false,
+                drawBorder: false
+              },
+              border: {
+                display: false
+              },
+              ticks: {
+                color: '#6B7280',
+                padding: 8,
+                font: {
+                  size: 10,
+                  weight: '700'
+                },
+                callback: function(value) {
+                  return value + '%';
+                }
+              }
             }
           }
         }
       });
 
       this.chartPasivosInstance = new Chart(ctxPasivos, {
-        type: 'bar',
         data: {
           labels: cData.labels,
           datasets: [
+            {
+              label: 'Movimiento del Mes',
+              type: 'bar',
+              data: cData.pasivosMov,
+              backgroundColor: gradientMovimiento,
+              borderColor: 'rgba(1, 51, 98, 0.18)',
+              borderWidth: 1,
+              borderRadius: 8,
+              borderSkipped: false,
+              barThickness: 20,
+              maxBarThickness: 24,
+              order: 3,
+              yAxisID: 'movement'
+            },
             {
               label: 'Saldo Acumulado',
               type: 'line',
               data: cData.pasivosSaldo,
               borderColor: '#F97316',
-              backgroundColor: 'rgba(249, 115, 22, 0.1)',
-              borderWidth: 2,
+              backgroundColor: gradientPasivos,
+              pointBackgroundColor: '#FFFFFF',
+              pointBorderColor: '#F97316',
+              pointBorderWidth: 2,
+              pointRadius: 3.5,
+              pointHoverRadius: 5,
+              borderWidth: 2.5,
+              tension: 0.38,
               fill: true,
-              tension: 0.3,
-              pointRadius: 2,
-              yAxisID: 'y'
-            },
-            {
-              label: 'Movimiento del Mes',
-              data: cData.pasivosMov,
-              backgroundColor: '#D1D5DB',
-              borderRadius: 2,
-              yAxisID: 'y1'
+              order: 1,
+              yAxisID: 'balance'
             }
           ]
         },
         options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          interaction: { mode: 'index', intersect: false },
+          ...baseChartOptions,
           plugins: {
-            legend: { position: 'top', labels: { boxWidth: 10, font: { size: 10 } } },
+            ...baseChartOptions.plugins,
             tooltip: {
+              ...baseChartOptions.plugins.tooltip,
               callbacks: {
                 label: function(context) {
-                  let label = context.dataset.label || '';
-                  if (label) label += ': ';
-                  label += '$' + new Intl.NumberFormat('es-CO').format(context.parsed.y);
-                  return label;
+                  const label = context.dataset.label || '';
+                  const value = context.parsed.y || 0;
+                  return label + ': ' + moneyFormatter(value);
                 }
               }
             }
           },
           scales: {
-            x: { grid: { display: false }, ticks: { font: { size: 9 } } },
-            y: {
-              type: 'linear',
-              display: true,
-              position: 'left',
-              grid: { borderDash: [2, 4], color: '#E5E7EB' },
-              ticks: { font: { size: 9 }, callback: compactFormatter }
+            x: {
+              grid: {
+                display: false
+              },
+              ticks: {
+                color: '#6B7280',
+                maxRotation: 35,
+                minRotation: 35,
+                font: {
+                  size: 10,
+                  weight: '700'
+                }
+              },
+              border: {
+                display: false
+              }
             },
-            y1: {
+            balance: {
               type: 'linear',
-              display: true,
+              position: 'left',
+              grid: {
+                color: 'rgba(1, 51, 98, 0.08)',
+                drawBorder: false
+              },
+              border: {
+                display: false
+              },
+              ticks: {
+                color: '#6B7280',
+                padding: 8,
+                font: {
+                  size: 10,
+                  weight: '700'
+                },
+                callback: compactFormatter
+              }
+            },
+            movement: {
+              type: 'linear',
               position: 'right',
-              grid: { display: false },
-              ticks: { font: { size: 9 }, callback: compactFormatter }
+              grid: {
+                drawOnChartArea: false,
+                drawBorder: false
+              },
+              border: {
+                display: false
+              },
+              ticks: {
+                color: '#6B7280',
+                padding: 8,
+                font: {
+                  size: 10,
+                  weight: '700'
+                },
+                callback: compactFormatter
+              }
             }
           }
         }
@@ -2611,14 +2818,18 @@ new Vue({
     // Entrada: más ejecución es bueno.
     // Salida: pasarse del presupuesto es malo.
     // =====================================================
-    getProjectionAlert(flujo, porcentaje, presupuesto, ejecutado) {
+    getProjectionAlert(tipo, flujo, porcentaje, presupuesto, ejecutado) {
+      const tipoNorm = this.normalizeProjectionValue(tipo);
+      const mode = this.getProjectionComplianceModeByType(tipo, flujo);
+
       if (!presupuesto && ejecutado > 0) {
-        if (flujo === 'entrada') {
+        if (tipoNorm === 'ingreso') {
           return {
             level: 'ok',
             label: 'Entrada extra',
             className: 'bg-green-100 text-green-700',
-            barClass: 'bg-green-400'
+            barClass: 'bg-green-500',
+            textClass: 'text-green-500'
           };
         }
 
@@ -2626,7 +2837,8 @@ new Vue({
           level: 'danger',
           label: 'Sin ppto',
           className: 'bg-red-600 text-white shadow-sm',
-          barClass: 'bg-red-600'
+          barClass: 'bg-red-600',
+          textClass: 'text-red-500'
         };
       }
 
@@ -2635,71 +2847,74 @@ new Vue({
           level: 'neutral',
           label: '0%',
           className: 'bg-gray-100 text-gray-500',
-          barClass: 'bg-gray-300'
+          barClass: 'bg-gray-300',
+          textClass: 'text-gray-400'
         };
       }
 
-      // Entradas: alcanzar o superar presupuesto es positivo
-      if (flujo === 'entrada') {
-        if (porcentaje >= 100) {
+      const barClass = this.getProjectionPctBarClass(porcentaje, mode);
+      const textClass = this.getProjectionPctTextClass(porcentaje, mode);
+
+      // Gastos / salidas:
+      // 0-50 verde, 50-85 naranja, >85 rojo.
+      if (mode === 'gasto' || mode === 'salida') {
+        if (porcentaje <= 50) {
           return {
             level: 'ok',
-            label: 'OK',
+            label: 'Verde',
             className: 'bg-green-100 text-green-700',
-            barClass: 'bg-green-400'
+            barClass: barClass,
+            textClass: textClass
           };
         }
 
-        if (porcentaje >= 90) {
+        if (porcentaje <= 85) {
           return {
             level: 'warning',
-            label: 'Cerca',
+            label: 'Naranja',
             className: 'bg-orange-100 text-orange-700',
-            barClass: 'bg-orange-400'
+            barClass: barClass,
+            textClass: textClass
           };
         }
 
-        return {
-          level: 'danger',
-          label: 'Bajo',
-          className: 'bg-red-100 text-red-700',
-          barClass: 'bg-red-400'
-        };
-      }
-
-      // Salidas: consumir menos presupuesto es positivo
-      if (porcentaje < 70) {
-        return {
-          level: 'ok',
-          label: 'Verde',
-          className: 'bg-green-100 text-green-700',
-          barClass: 'bg-green-400'
-        };
-      }
-
-      if (porcentaje < 95) {
-        return {
-          level: 'warning',
-          label: 'Naranja',
-          className: 'bg-orange-100 text-orange-700',
-          barClass: 'bg-orange-400'
-        };
-      }
-
-      if (porcentaje <= 110) {
         return {
           level: 'danger',
           label: 'Rojo',
           className: 'bg-red-100 text-red-700',
-          barClass: 'bg-red-400'
+          barClass: barClass,
+          textClass: textClass
+        };
+      }
+
+      // Ingresos / Activos / Pasivos como meta:
+      // bajo cumplimiento rojo, medio naranja, alto verde.
+      if (porcentaje <= 50) {
+        return {
+          level: 'danger',
+          label: 'Bajo',
+          className: 'bg-red-100 text-red-700',
+          barClass: barClass,
+          textClass: textClass
+        };
+      }
+
+      if (porcentaje <= 85) {
+        return {
+          level: 'warning',
+          label: 'Cerca',
+          className: 'bg-orange-100 text-orange-700',
+          barClass: barClass,
+          textClass: textClass
         };
       }
 
       return {
-        level: 'danger',
-        label: 'Crítico',
-        className: 'bg-red-600 text-white shadow-sm',
-        barClass: 'bg-red-600'
+        level: 'ok',
+        label: 'OK',
+        className: 'bg-green-100 text-green-700',
+        barClass: barClass,
+        textClass: textClass
       };
     },
 
@@ -3201,30 +3416,98 @@ new Vue({
       return Math.min(Math.abs(num), 100);
     },
 
+    getProjectionComplianceModeByType(tipo, flujo) {
+      const tipoNorm = this.normalizeProjectionValue(tipo);
+
+      if (tipoNorm === 'ingreso') return 'ingreso';
+      if (tipoNorm === 'gasto') return 'gasto';
+
+      // Activos y Pasivos se comportan como metas:
+      // si presupuesté constitución, reintegro, pago o endeudamiento,
+      // bajo cumplimiento debe iniciar en rojo.
+      if (tipoNorm === 'activo' || tipoNorm === 'pasivo') return 'meta';
+
+      // Fallback para casos futuros.
+      if (flujo === 'entrada') return 'ingreso';
+
+      return 'gasto';
+    },
+
     getProjectionPctBarClass(value, mode) {
       const num = Number(value) || 0;
 
-      if (num >= 999) return 'bg-red-500';
-
-      if (mode === 'entrada') {
-        if (num >= 100) return 'bg-green-500';
-        if (num >= 90) return 'bg-orange-400';
-        return 'bg-red-500';
-      }
-
-      if (mode === 'salida') {
-        if (num < 70) return 'bg-green-500';
-        if (num < 95) return 'bg-orange-400';
-        return 'bg-red-500';
-      }
-
+      // Cash Flow Neto conserva su lectura propia.
       if (mode === 'neto') {
         if (num >= 100) return 'bg-green-500';
         if (num >= 80) return 'bg-orange-400';
         return 'bg-red-500';
       }
 
-      return 'bg-tema-5';
+      // Sin presupuesto:
+      // ingreso/entrada extra puede verse positivo;
+      // lo demás debe alertar.
+      if (num >= 999) {
+        if (mode === 'ingreso' || mode === 'entrada') {
+          return 'bg-green-500';
+        }
+
+        return 'bg-red-500';
+      }
+
+      // Gastos / salidas:
+      // bajo consumo es bueno, alto consumo es riesgo.
+      if (mode === 'gasto' || mode === 'salida') {
+        if (num <= 50) return 'bg-green-500';
+        if (num <= 85) return 'bg-orange-400';
+        return 'bg-red-500';
+      }
+
+      // Ingresos / metas:
+      // bajo cumplimiento es malo, alto cumplimiento es bueno.
+      // Aplica para Ingreso, Activo y Pasivo.
+      if (mode === 'ingreso' || mode === 'entrada' || mode === 'meta') {
+        if (num <= 50) return 'bg-red-500';
+        if (num <= 85) return 'bg-orange-400';
+        return 'bg-green-500';
+      }
+
+      return 'bg-gray-400';
+    },
+
+    getProjectionPctTextClass(value, mode) {
+      return this.getProjectionPctBarClass(value, mode).replace('bg-', 'text-');
+    },
+
+    getProjectionPctIcon(value, mode) {
+      const barClass = this.getProjectionPctBarClass(value, mode);
+
+      const isGreen = barClass.includes('green');
+      const isOrange = barClass.includes('orange');
+
+      // Gastos / salidas:
+      // verde = consumo bajo/controlado → flecha abajo
+      // rojo = consumo alto/exceso → flecha arriba
+      if (mode === 'gasto' || mode === 'salida') {
+        if (isGreen) return 'trending_down';
+        if (isOrange) return 'trending_flat';
+        return 'trending_up';
+      }
+
+      // Neto:
+      // positivo o mejor cumplimiento → flecha arriba
+      if (mode === 'neto') {
+        if (isGreen) return 'trending_up';
+        if (isOrange) return 'trending_flat';
+        return 'trending_down';
+      }
+
+      // Ingresos / metas:
+      // rojo = bajo cumplimiento → flecha abajo
+      // verde = buen cumplimiento → flecha arriba
+      if (isGreen) return 'trending_up';
+      if (isOrange) return 'trending_flat';
+
+      return 'trending_down';
     },
 
     getProjectionSignedValueClass(value) {
@@ -3241,12 +3524,16 @@ new Vue({
 
       if (num === 0) return 'text-gray-400';
 
-      if (mode === 'entrada') {
+      if (mode === 'entrada' || mode === 'ingreso') {
         return num > 0 ? 'text-tema-4' : 'text-red-500';
       }
 
-      if (mode === 'salida') {
+      if (mode === 'salida' || mode === 'gasto') {
         return num > 0 ? 'text-red-500' : 'text-tema-4';
+      }
+
+      if (mode === 'meta') {
+        return num > 0 ? 'text-tema-4' : 'text-red-500';
       }
 
       if (mode === 'neto') {
