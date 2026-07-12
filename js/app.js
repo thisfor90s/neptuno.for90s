@@ -1271,6 +1271,73 @@ new Vue({
 
       const t = this.projectionTotals;
 
+      // =====================================================
+      // NO PRESUPUESTADO / FLUJO NETO
+      // Solo filas virtuales: ejecución real sin presupuesto
+      // =====================================================
+      const noBudgetRows = rows.filter(row => row.isVirtual);
+
+      const noPresupuestado = noBudgetRows.reduce((acc, row) => {
+        const tipoNorm = norm(row.tipo);
+        const value = Number(row.ejecutado) || 0;
+
+        acc.items += 1;
+
+        // Ingreso siempre suma al flujo.
+        // Si viene negativo, reduce el flujo.
+        if (tipoNorm === 'ingreso') {
+          acc.ingresos += value;
+        }
+
+        // Gasto se muestra como gasto.
+        // En el neto se resta.
+        else if (tipoNorm === 'gasto') {
+          acc.gastos += value;
+        }
+
+        // Activo:
+        // salida = constitución / aumento de activo = positivo en Activos Neto
+        // entrada = reintegro / retiro = negativo en Activos Neto
+        else if (tipoNorm === 'activo') {
+          acc.activosNeto += row.flujo === 'entrada'
+            ? -Math.abs(value)
+            : Math.abs(value);
+        }
+
+        // Pasivo:
+        // entrada = endeudamiento = positivo
+        // salida = pago / disminución = negativo
+        else if (tipoNorm === 'pasivo') {
+          acc.pasivosNeto += row.flujo === 'salida'
+            ? -Math.abs(value)
+            : Math.abs(value);
+        }
+
+        // Seguridad para tipos futuros.
+        else {
+          acc.otros += row.flujo === 'entrada'
+            ? value
+            : -value;
+        }
+
+        return acc;
+      }, {
+        ingresos: 0,
+        gastos: 0,
+        activosNeto: 0,
+        pasivosNeto: 0,
+        otros: 0,
+        items: 0,
+        neto: 0
+      });
+
+      noPresupuestado.neto =
+        noPresupuestado.ingresos
+        - noPresupuestado.gastos
+        - noPresupuestado.activosNeto
+        + noPresupuestado.pasivosNeto
+        + noPresupuestado.otros;
+
       return {
         entradas: buildMetric(
           sum(isEntrada, 'presupuesto'),
@@ -1307,9 +1374,7 @@ new Vue({
           t.netoEjecutado
         ),
 
-        noPresupuestadoSalida: t.noPresupuestadoSalida,
-        noPresupuestadoSalidaItems: t.noPresupuestadoSalidaItems,
-        noPresupuestadoSalidaPct: this.projectionKpiMetrics.noPresupuestadoSalidaPct,
+        noPresupuestado: noPresupuestado,
 
         alertas: t.alertas,
         alertasPct: this.projectionKpiMetrics.alertasPct
@@ -3217,6 +3282,41 @@ new Vue({
       }
 
       return value >= 0 ? 'text-tema-4' : 'text-red-500';
+    },
+
+    getProjectionNoBudgetComponentClass(value, mode) {
+      const num = Number(value) || 0;
+
+      if (num === 0) return 'text-gray-400';
+
+      // Ingreso positivo mejora flujo.
+      if (mode === 'ingreso') {
+        return num > 0 ? 'text-tema-4' : 'text-red-500';
+      }
+
+      // Gasto positivo consume flujo.
+      if (mode === 'gasto') {
+        return num > 0 ? 'text-red-500' : 'text-tema-4';
+      }
+
+      // Activo positivo = constitución/aumento = salida de caja.
+      // Activo negativo = reintegro/retiro = entrada de caja.
+      if (mode === 'activo') {
+        return num > 0 ? 'text-red-500' : 'text-tema-4';
+      }
+
+      // Pasivo positivo = endeudamiento = entrada de caja.
+      // Pasivo negativo = pago = salida de caja.
+      if (mode === 'pasivo') {
+        return num > 0 ? 'text-tema-4' : 'text-red-500';
+      }
+
+      // Neto positivo mejora flujo.
+      if (mode === 'neto') {
+        return num > 0 ? 'text-tema-4' : 'text-red-500';
+      }
+
+      return num > 0 ? 'text-tema-4' : 'text-red-500';
     },
   }
 });

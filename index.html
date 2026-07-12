@@ -1424,49 +1424,100 @@
             </div>
 
             <!-- NO PRESUPUESTADO + ALERTAS -->
-            <div class="bg-white rounded-lg border border-gray-200 p-2 shadow-sm border-l-[4px] border-l-orange-400">
+            <!-- NO PRESUPUESTADO + ALERTAS -->
+            <div
+              class="bg-white rounded-lg border border-gray-200 p-2 shadow-sm border-l-[4px]"
+              :class="projectionCashFlowMetrics.noPresupuestado.neto >= 0 ? 'border-l-tema-4' : 'border-l-red-500'">
 
               <div class="flex justify-between items-start gap-2">
                 <div>
                   <p class="text-[8px] font-black uppercase tracking-wider text-gray-400 leading-none">
-                    Control
+                    No Presupuestado
                   </p>
                   <p class="text-[7px] font-bold text-gray-400 mt-1">
-                    No presupuestado y alertas
+                    Flujo real fuera de presupuesto
                   </p>
                 </div>
 
-                <span class="material-symbols-outlined text-[15px] text-orange-500">warning</span>
+                <div class="flex flex-col items-end leading-none">
+                  <span class="text-[8px] font-black text-orange-500">
+                    {{ projectionCashFlowMetrics.alertas }} alertas
+                  </span>
+                  <span class="text-[7px] font-bold text-gray-400 mt-1">
+                    {{ projectionCashFlowMetrics.noPresupuestado.items }} filas
+                  </span>
+                </div>
               </div>
 
-              <div class="grid grid-cols-2 gap-2 mt-2">
+              <div class="grid grid-cols-2 gap-x-2 gap-y-1.5 mt-2">
+
+                <!-- Ingresos -->
+                <div class="flex justify-between items-center gap-1">
+                  <span class="text-[7px] font-black uppercase text-gray-400 truncate">
+                    Ingresos
+                  </span>
+                  <span
+                    class="text-[9px] font-black whitespace-nowrap"
+                    :class="getProjectionNoBudgetComponentClass(projectionCashFlowMetrics.noPresupuestado.ingresos, 'ingreso')">
+                    {{ formatProjectionDiffMoney(projectionCashFlowMetrics.noPresupuestado.ingresos) }}
+                  </span>
+                </div>
+
+                <!-- Gastos -->
+                <div class="flex justify-between items-center gap-1">
+                  <span class="text-[7px] font-black uppercase text-gray-400 truncate">
+                    Gastos
+                  </span>
+                  <span
+                    class="text-[9px] font-black whitespace-nowrap"
+                    :class="getProjectionNoBudgetComponentClass(projectionCashFlowMetrics.noPresupuestado.gastos, 'gasto')">
+                    {{ formatProjectionDiffMoney(projectionCashFlowMetrics.noPresupuestado.gastos) }}
+                  </span>
+                </div>
+
+                <!-- Activos Neto -->
+                <div class="flex justify-between items-center gap-1" title="- Reintegro / + Constitución">
+                  <span class="text-[7px] font-black uppercase text-gray-400 truncate">
+                    Activos Neto
+                  </span>
+                  <span
+                    class="text-[9px] font-black whitespace-nowrap"
+                    :class="getProjectionNoBudgetComponentClass(projectionCashFlowMetrics.noPresupuestado.activosNeto, 'activo')">
+                    {{ formatProjectionDiffMoney(projectionCashFlowMetrics.noPresupuestado.activosNeto) }}
+                  </span>
+                </div>
+
+                <!-- Pasivos Neto -->
+                <div class="flex justify-between items-center gap-1" title="- Pagos / + Endeudamiento">
+                  <span class="text-[7px] font-black uppercase text-gray-400 truncate">
+                    Pasivos Neto
+                  </span>
+                  <span
+                    class="text-[9px] font-black whitespace-nowrap"
+                    :class="getProjectionNoBudgetComponentClass(projectionCashFlowMetrics.noPresupuestado.pasivosNeto, 'pasivo')">
+                    {{ formatProjectionDiffMoney(projectionCashFlowMetrics.noPresupuestado.pasivosNeto) }}
+                  </span>
+                </div>
+
+              </div>
+
+              <div class="mt-2 pt-2 border-t border-gray-100 flex justify-between items-center">
                 <div>
-                  <p class="text-[7px] font-black uppercase text-gray-400 leading-none">Sin ppto</p>
-                  <p class="text-[12px] font-black text-red-500 tracking-tight leading-tight mt-1">
-                    $ {{ formatInput(projectionCashFlowMetrics.noPresupuestadoSalida) }}
+                  <p class="text-[7px] font-black uppercase text-gray-400 leading-none">
+                    Neto Cash Flow
                   </p>
                   <p class="text-[7px] font-bold text-gray-400 mt-1">
-                    {{ projectionCashFlowMetrics.noPresupuestadoSalidaItems }} filas
+                    Ing - Gas - Act + Pas
                   </p>
                 </div>
 
-                <div>
-                  <p class="text-[7px] font-black uppercase text-gray-400 leading-none">Alertas</p>
-                  <p class="text-[12px] font-black text-orange-500 tracking-tight leading-tight mt-1">
-                    {{ projectionCashFlowMetrics.alertas }}
-                  </p>
-                  <p class="text-[7px] font-bold text-gray-400 mt-1">
-                    {{ formatProjectionPct(projectionCashFlowMetrics.alertasPct) }}
-                  </p>
-                </div>
+                <span
+                  class="text-[13px] font-black tracking-tight whitespace-nowrap"
+                  :class="getProjectionNoBudgetComponentClass(projectionCashFlowMetrics.noPresupuestado.neto, 'neto')">
+                  {{ formatProjectionDiffMoney(projectionCashFlowMetrics.noPresupuestado.neto) }}
+                </span>
               </div>
 
-              <div class="w-full h-1 bg-gray-100 rounded-full overflow-hidden mt-2">
-                <div
-                  class="h-full rounded-full bg-orange-400"
-                  :style="{ width: getProjectionPctWidth(projectionCashFlowMetrics.alertasPct) + '%' }">
-                </div>
-              </div>
             </div>
 
           </div>
