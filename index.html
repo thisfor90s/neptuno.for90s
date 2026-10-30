@@ -743,84 +743,452 @@
         </div>
       </div>
 
+      
       <!-- VISTA: LISTA -->
-      <div v-if="activeView === 'lista'" class="animate-fade-in flex flex-col h-full overflow-hidden text-tema-3 text-tema-3 text-tema-3 text-tema-3">
-        <div class="flex justify-between items-center mb-4 border-b-2 border-gray-300 pb-2 flex-shrink-0 text-tema-3 text-tema-3">
-          <div class="flex items-center text-tema-1 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3"><span class="material-symbols-outlined text-3xl mr-3 text-tema-1">format_list_bulleted</span><h2 class="text-3xl font-black">Historial</h2></div>
-          <div v-if="isLoadingList || isSyncingBackground" class="flex items-center text-gray-500 text-sm text-tema-3 text-tema-3"><div class="loader-small mr-2 text-tema-3 text-tema-3"></div>Sincronizando...</div>
+      <div
+        v-if="activeView === 'lista'"
+        class="animate-fade-in flex flex-col h-full min-h-0 text-tema-3"
+      >
+        <!-- CABECERA -->
+        <div class="flex items-center justify-between gap-2 mb-3 pb-2 border-b-2 border-gray-200">
+          <div class="flex items-center gap-2 text-tema-1">
+            <span class="material-symbols-outlined text-2xl">format_list_bulleted</span>
+            <h2 class="text-xl md:text-3xl font-black">Movimientos</h2>
+          </div>
+
+          <span
+            v-if="isLoadingList || isSyncingBackground"
+            class="text-[10px] text-gray-400 font-bold flex items-center gap-1"
+          >
+            <span class="loader-small"></span>
+            Sincronizando
+          </span>
         </div>
 
         <!-- FILTROS -->
-        <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-300 mb-4 space-y-3 flex-shrink-0 text-tema-3 text-tema-3 text-tema-3 text-tema-3">
-          <div class="flex flex-col md:flex-row gap-3 items-center text-tema-3 text-tema-3 text-tema-3">
-            <div class="flex-grow relative w-full text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3"><span class="material-symbols-outlined text-lg">search</span></span>
-              <input type="text" v-model="searchQuery" placeholder="Buscar movimiento..." class="w-full pl-10 pr-4 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-tema-1 outline-none text-sm text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3">
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-3 mb-3">
+          <div class="flex flex-col md:flex-row gap-2">
+            <div class="relative flex-1 min-w-0">
+              <span class="material-symbols-outlined absolute left-2 top-2 text-gray-400 text-lg">search</span>
+              <input
+                v-model="searchQuery"
+                type="text"
+                placeholder="Buscar movimiento..."
+                class="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-1 focus:ring-tema-1"
+              >
             </div>
-            
-            <div class="flex items-center gap-2 w-full md:w-auto text-tema-3 text-tema-3 text-tema-3 text-tema-3">
-              <select v-model="filters.periodo" class="p-1.5 border border-gray-300 rounded-lg text-sm bg-white outline-none font-bold text-tema-1 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3"><option value="">Todo el tiempo</option><option value="semana">Esta Semana (Lun-Dom)</option><option value="mes">Mes Actual</option><option value="mes_anterior">Mes Anterior</option><option value="año">Año Actual</option><option value="año_anterior">Año Anterior</option></select>
-              <div class="flex items-center bg-tema-bg p-1 px-2 rounded-lg border border-gray-200 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3"><label class="flex items-center cursor-pointer text-[9px] font-black uppercase text-tema-1 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3"><input type="checkbox" v-model="filters.useFechaPago" class="toggle-checkbox mr-1.5 scale-90">{{ filters.useFechaPago ? 'Pago' : 'Reg' }}</label></div>
-              <button @click="resetFilters" class="text-tema-1 text-xs font-bold hover:bg-tema-5/20 p-1.5 rounded transition-colors text-tema-3 text-tema-1 text-tema-3 text-tema-1 text-tema-3 text-tema-1 text-tema-3 text-tema-1 text-tema-3 text-tema-1 text-tema-3 text-tema-1 text-tema-3 text-tema-1 text-tema-3 text-tema-1"><span class="material-symbols-outlined text-sm">refresh</span></button>
+
+            <div class="flex items-center gap-2 min-w-0">
+              <select
+                v-model="filters.periodo"
+                @change="movimientosOnPeriodChange"
+                class="flex-1 min-w-0 md:w-48 p-2 border border-gray-200 rounded-lg bg-white text-xs font-bold text-tema-1"
+              >
+                <option value="">Todo el tiempo</option>
+                <option value="semana">Esta Semana</option>
+                <option value="mes">Mes Actual</option>
+                <option value="mes_anterior">Mes Anterior</option>
+                <option value="año">Año Actual</option>
+                <option value="año_anterior">Año Anterior</option>
+                <option value="rango">Rango</option>
+              </select>
+
+              <label class="flex items-center gap-1 text-[10px] font-black whitespace-nowrap">
+                <input
+                  type="checkbox"
+                  v-model="filters.useFechaPago"
+                  class="toggle-checkbox"
+                >
+                {{ filters.useFechaPago ? 'Pago' : 'Reg' }}
+              </label>
+
+              <button
+                type="button"
+                @click="movimientosResetFilters"
+                aria-label="Limpiar filtros"
+                class="p-2 text-tema-1 rounded-lg hover:bg-gray-100"
+              >
+                <span class="material-symbols-outlined">refresh</span>
+              </button>
             </div>
           </div>
-          <div class="grid grid-cols-2 md:grid-cols-5 gap-2 text-[10px] text-tema-3 font-bold uppercase text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3">
-            <select v-model="filters.tipo" class="p-1 border border-gray-300 rounded bg-white text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3"><option value="">Tipos</option><option v-for="op in tiposOptions" :value="op" :key="op">{{op}}</option></select>
-            <select v-model="filters.grupo" class="p-1 border border-gray-300 rounded bg-white text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3"><option value="">Grupos</option><option v-for="op in listGruposOptions" :value="op" :key="op">{{op}}</option></select>
-            <select v-model="filters.categoria" class="p-1 border border-gray-300 rounded bg-white text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3"><option value="">Categorías</option><option v-for="op in listCategoriasOptions" :value="op" :key="op">{{op}}</option></select>
-            <select v-model="filters.tercero" class="p-1 border border-gray-300 rounded bg-white text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3"><option value="">Terceros</option><option v-for="op in tercerosOptions" :value="op" :key="op">{{op}}</option></select>
-            <select v-model="filters.medio" class="p-1 border border-gray-300 rounded bg-white text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3"><option value="">Medios</option><option v-for="op in formasPagoOptions" :value="op" :key="op">{{op}}</option></select>
+
+          <!-- CALENDARIO COMPACTO -->
+          <div
+            v-if="filters.periodo === 'rango'"
+            class="relative mt-2 flex flex-col items-end gap-1"
+          >
+            <button
+              type="button"
+              @click="movimientosCalendarOpen = !movimientosCalendarOpen"
+              :aria-expanded="String(movimientosCalendarOpen)"
+              aria-controls="movimientos-range-calendar"
+              class="w-full md:w-auto flex items-center justify-between gap-2 border border-gray-200 rounded-lg px-3 py-2 text-xs font-bold text-tema-1"
+            >
+              <span class="material-symbols-outlined text-lg">date_range</span>
+              <span>
+                {{ movimientosAppliedStart
+                  ? dashboardFormatDate(movimientosAppliedStart)
+                  : 'Fecha inicial' }}
+                —
+                {{ movimientosAppliedEnd
+                  ? dashboardFormatDate(movimientosAppliedEnd)
+                  : 'Fecha final' }}
+              </span>
+              <span class="material-symbols-outlined text-lg">
+                {{ movimientosCalendarOpen ? 'expand_less' : 'expand_more' }}
+              </span>
+            </button>
+
+            <div
+              v-show="movimientosCalendarOpen"
+              id="movimientos-range-calendar"
+              class="absolute top-full right-0 mt-1 z-40 w-[280px] max-w-full bg-white border border-gray-200 rounded-xl shadow-xl p-2.5"
+            >
+              <div class="flex items-center justify-between mb-2">
+                <button
+                  type="button"
+                  @click="movimientosChangeMonth(-1)"
+                  aria-label="Mes anterior"
+                  class="p-2"
+                >
+                  <span class="material-symbols-outlined">chevron_left</span>
+                </button>
+
+                <span class="text-xs font-black uppercase text-tema-1">
+                  {{ movimientosCalendarLabel }}
+                </span>
+
+                <button
+                  type="button"
+                  @click="movimientosChangeMonth(1)"
+                  aria-label="Mes siguiente"
+                  class="p-2"
+                >
+                  <span class="material-symbols-outlined">chevron_right</span>
+                </button>
+              </div>
+
+              <div class="grid grid-cols-7 gap-1 mb-1">
+                <span
+                  v-for="name in ['Lu','Ma','Mi','Ju','Vi','Sá','Do']"
+                  :key="name"
+                  class="text-center text-[10px] font-black text-gray-400"
+                >
+                  {{ name }}
+                </span>
+              </div>
+
+              <div class="grid grid-cols-7 gap-1">
+                <template v-for="(day, index) in movimientosCalendarDays">
+                  <span
+                    v-if="!day"
+                    :key="'empty-' + index"
+                    class="h-8"
+                  ></span>
+
+                  <button
+                    v-else
+                    :key="day.value"
+                    type="button"
+                    @click="movimientosSelectDay(day.value)"
+                    :aria-label="day.value"
+                    :aria-pressed="String(day.value === movimientosRangeStart || day.value === movimientosRangeEnd)"
+                    class="h-8 rounded-md text-[11px] font-bold focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    :class="movimientosDayClass(day.value)"
+                  >
+                    {{ day.day }}
+                  </button>
+                </template>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2 mt-3">
+                <div class="bg-gray-50 rounded-lg p-2">
+                  <p class="text-[9px] text-gray-400 font-black">INICIO</p>
+                  <p class="text-[11px] font-bold">
+                    {{ dashboardFormatDate(movimientosRangeStart) }}
+                  </p>
+                </div>
+
+                <div class="bg-gray-50 rounded-lg p-2">
+                  <p class="text-[9px] text-gray-400 font-black">FIN</p>
+                  <p class="text-[11px] font-bold">
+                    {{ dashboardFormatDate(movimientosRangeEnd) }}
+                  </p>
+                </div>
+              </div>
+
+              <div class="flex items-center justify-between mt-3 pt-2 border-t border-gray-100">
+                <button
+                  type="button"
+                  @click="movimientosClearRange"
+                  class="text-xs font-bold text-gray-500 px-2 py-2"
+                >
+                  Limpiar
+                </button>
+
+                <button
+                  type="button"
+                  @click="movimientosApplyRange"
+                  :disabled="!movimientosRangeStart || !movimientosRangeEnd"
+                  class="bg-tema-1 text-white rounded-md px-3 py-2 text-xs font-black disabled:opacity-40"
+                >
+                  Aplicar rango
+                </button>
+              </div>
+            </div>
+
+            <p
+              v-if="movimientosHistoryError"
+              class="text-[10px] text-red-600 font-bold"
+            >
+              Histórico no disponible. Se mantiene el período anterior.
+            </p>
+
+            <p
+              v-else-if="movimientosAppliedStart && !movimientosHistoryReady"
+              class="text-[10px] text-gray-500"
+            >
+              Esperando histórico para aplicar el rango.
+            </p>
+          </div>
+
+          <!-- FILTROS AVANZADOS -->
+          <button
+            type="button"
+            @click="movimientosFiltersOpen = !movimientosFiltersOpen"
+            :aria-expanded="String(movimientosFiltersOpen)"
+            class="md:hidden mt-2 w-full flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs font-black text-tema-1"
+          >
+            <span>Filtros avanzados</span>
+            <span class="material-symbols-outlined">
+              {{ movimientosFiltersOpen ? 'expand_less' : 'expand_more' }}
+            </span>
+          </button>
+
+          <div
+            :class="movimientosFiltersOpen ? 'grid' : 'hidden'"
+            class="md:grid grid-cols-2 md:grid-cols-5 gap-2 mt-2"
+          >
+            <select v-model="filters.tipo" class="p-2 border border-gray-200 rounded-lg bg-white text-xs min-w-0">
+              <option value="">Tipos</option>
+              <option v-for="op in tiposOptions" :key="op" :value="op">{{ op }}</option>
+            </select>
+
+            <select v-model="filters.grupo" class="p-2 border border-gray-200 rounded-lg bg-white text-xs min-w-0">
+              <option value="">Grupos</option>
+              <option v-for="op in listGruposOptions" :key="op" :value="op">{{ op }}</option>
+            </select>
+
+            <select v-model="filters.categoria" class="p-2 border border-gray-200 rounded-lg bg-white text-xs min-w-0">
+              <option value="">Categorías</option>
+              <option v-for="op in listCategoriasOptions" :key="op" :value="op">{{ op }}</option>
+            </select>
+
+            <select v-model="filters.tercero" class="p-2 border border-gray-200 rounded-lg bg-white text-xs min-w-0">
+              <option value="">Terceros</option>
+              <option v-for="op in tercerosOptions" :key="op" :value="op">{{ op }}</option>
+            </select>
+
+            <select v-model="filters.medio" class="p-2 border border-gray-200 rounded-lg bg-white text-xs min-w-0">
+              <option value="">Medios</option>
+              <option v-for="op in formasPagoOptions" :key="op" :value="op">{{ op }}</option>
+            </select>
           </div>
         </div>
 
-        <!-- TABLA -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-300 flex-1 flex flex-col min-h-0 relative overflow-hidden text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3">
-          <div class="overflow-auto flex-1 h-full scroll-area text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3">
-            <table class="w-full text-left border-collapse table-auto relative text-sm text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3">
-              <thead class="sticky top-0 z-20">
-                <tr class="bg-tema-1 text-white text-[10px] uppercase tracking-wider text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg"><th class="p-2 border-r border-white/10 w-12 text-center text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg">ID</th><th class="p-2 border-r border-white/10 text-tema-bg text-center text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg">Registro / Pago</th><th class="p-2 border-r border-white/10 text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg">Categoría / Grupo</th><th class="p-2 border-r border-white/10 text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg">Medio / Tercero</th><th class="p-2 border-r border-white/10 text-right text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg">Valor</th><th class="p-2 border-r border-white/10 text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg">Descripción</th><th class="p-2 text-center w-10 text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg">X</th></tr>
-              </thead>
-              <tbody class="text-[11px] text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3">
-                <tr v-for="t in dbListaFiltrada" :key="t.idx" class="border-b border-gray-100 hover:bg-tema-bg transition-colors h-11 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3">
-                  <td class="p-2 font-mono text-gray-400 text-center text-[10px]">#{{ t.idx }}</td>
-                  <td class="p-2 whitespace-nowrap leading-tight text-center text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3">
-                    <span class="font-bold text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3">{{ t.fecha_registration || t.fecha_registro }}</span><br>
-                    <span class="text-[9px] text-gray-400 italic">Pago: {{ t.fecha_payment || t.fecha_pago }}</span>
-                  </td>
-                  <td class="p-2 leading-tight text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3"><span class="font-bold text-tema-3 uppercase text-[11px] text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3">{{ t.categoria }}</span><br><span class="text-[9px] uppercase tracking-tighter" :class="getTipoColor(t.tipo)">{{ t.tipo }} &bull; {{ t.grupo }}</span></td>
-                  <td class="p-2 leading-tight text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3"><span class="font-medium text-tema-1 text-tema-1 text-tema-1 text-tema-1 text-tema-1 text-tema-1 text-tema-1 text-tema-1 text-tema-1 text-tema-1 text-tema-1 text-tema-1 text-tema-1 text-tema-1 text-tema-1 text-tema-1 text-tema-1 text-tema-1 text-tema-1 text-tema-1 text-tema-1 text-tema-1">{{ t.medio }}</span><br><span class="text-[10px] text-gray-500">{{ t.tercero }}</span></td>
-                  <td class="p-2 font-black text-right text-sm text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3" :class="getValorColor(t.tipo)">${{ Number(t.valor).toLocaleString() }}</td>
-                  <td class="p-2 text-gray-500 max-w-[150px] truncate text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3" :title="t.descripcion">{{ t.descripcion }}</td>
-                  <td class="p-2 text-center text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3"><button @click="deleteTransaction(t)" class="text-red-300 hover:text-red-600 transition-colors transform hover:scale-110 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3" title="Eliminar"><span class="material-symbols-outlined text-lg">cancel</span></button></td>
+        <!-- CONTENIDO -->
+        
+        <div class="flex-1 min-h-0 overflow-y-auto pb-40 md:pb-0">
+
+          <!-- MÓVIL: TARJETAS -->
+          <div class="md:hidden space-y-2">
+            <div
+              v-for="t in dbListaFiltrada"
+              :key="t.idx || t.id"
+              class="bg-white border border-gray-200 rounded-xl shadow-sm p-3"
+            >
+              <div class="flex items-start justify-between gap-2">
+                <div class="min-w-0 flex-1">
+                  <p class="text-sm font-black text-tema-1 break-words">
+                    {{ t.categoria || 'Sin categoría' }}
+                  </p>
+                  <p class="text-[10px] text-gray-500">
+                    {{ t.grupo }} · {{ t.medio }}
+                  </p>
+                </div>
+
+                <div class="text-right shrink-0">
+                  <p class="text-sm font-black" :class="getValorColor(t.tipo)">
+                    $ {{ formatInput(t.valor) }}
+                  </p>
+                  <p class="text-[10px] font-bold" :class="getTipoColor(t.tipo)">
+                    {{ t.tipo }}
+                  </p>
+                </div>
+              </div>
+
+              <p v-if="t.descripcion" class="text-xs text-gray-600 mt-2 break-words">
+                {{ t.descripcion }}
+              </p>
+
+              <div class="mt-2 pt-2 border-t border-gray-100 flex items-center justify-between gap-2">
+                <div class="min-w-0 text-[10px] text-gray-500">
+                  <p>{{ t.tercero }}</p>
+                  <p>
+                    Reg: {{ t.fecha_registration || t.fecha_registro }}
+                    · Pago: {{ t.fecha_payment || t.fecha_pago }}
+                  </p>
+                  <p class="text-[9px] text-gray-400">
+                    #{{ t.idx || t.id }}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  @click="deleteTransaction(t)"
+                  :aria-label="'Eliminar movimiento ' + (t.idx || t.id)"
+                  class="p-2 text-red-400 hover:text-red-600 shrink-0"
+                >
+                  <span class="material-symbols-outlined">delete</span>
+                </button>
+              </div>
+            </div>
+
+            <p
+              v-if="!isLoadingList && !dbListaFiltrada.length"
+              class="text-center text-gray-400 text-sm py-10"
+            >
+              Sin movimientos encontrados.
+            </p>
+          </div>
+
+          <!-- LAPTOP: TABLA -->
+          <div class="hidden md:block bg-white border border-gray-200 rounded-xl overflow-auto">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead class="sticky top-0 bg-tema-1 text-white z-10">
+                <tr>
+                  <th class="p-2">ID</th>
+                  <th class="p-2">Registro / Pago</th>
+                  <th class="p-2">Categoría / Grupo</th>
+                  <th class="p-2">Medio / Tercero</th>
+                  <th class="p-2 text-right">Valor</th>
+                  <th class="p-2">Descripción</th>
+                  <th class="p-2 text-center">X</th>
                 </tr>
-                <tr v-if="dbListaFiltrada.length === 0 && !isLoadingList"><td colspan="8" class="p-12 text-center text-gray-400 italic text-sm text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3 text-tema-3">Sin movimientos encontrados.</td></tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="t in dbListaFiltrada"
+                  :key="t.idx || t.id"
+                  class="border-b border-gray-100 hover:bg-tema-bg"
+                >
+                  <td class="p-2 text-gray-400">#{{ t.idx || t.id }}</td>
+                  <td class="p-2 whitespace-nowrap">
+                    {{ t.fecha_registration || t.fecha_registro }}
+                    <p class="text-gray-400 text-[10px]">
+                      Pago: {{ t.fecha_payment || t.fecha_pago }}
+                    </p>
+                  </td>
+                  <td class="p-2">
+                    <strong>{{ t.categoria }}</strong>
+                    <p :class="getTipoColor(t.tipo)">
+                      {{ t.tipo }} · {{ t.grupo }}
+                    </p>
+                  </td>
+                  <td class="p-2">
+                    {{ t.medio }}
+                    <p class="text-gray-400">{{ t.tercero }}</p>
+                  </td>
+                  <td class="p-2 text-right font-black whitespace-nowrap" :class="getValorColor(t.tipo)">
+                    $ {{ formatInput(t.valor) }}
+                  </td>
+                  <td class="p-2 max-w-[200px] truncate" :title="t.descripcion">
+                    {{ t.descripcion }}
+                  </td>
+                  <td class="p-2 text-center">
+                    <button
+                      type="button"
+                      @click="deleteTransaction(t)"
+                      class="text-red-400 hover:text-red-600"
+                      :aria-label="'Eliminar movimiento ' + (t.idx || t.id)"
+                    >
+                      <span class="material-symbols-outlined text-lg">cancel</span>
+                    </button>
+                  </td>
+                </tr>
+                <tr v-if="!isLoadingList && !dbListaFiltrada.length">
+                  <td colspan="7" class="p-10 text-center text-gray-400">
+                    Sin movimientos encontrados.
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>
-          
-          <!-- SUMATORIA STICKY -->
-          <div class="bg-tema-1 text-white py-1.5 px-4 border-t border-tema-2 shadow-2xl z-30 flex-shrink-0 flex justify-between items-center text-[9px] font-black uppercase tracking-tight text-tema-bg text-white text-tema-bg text-white text-tema-bg text-white text-tema-bg text-white text-tema-bg text-white text-tema-bg text-white text-tema-bg text-white text-tema-bg text-white text-tema-bg text-white text-tema-bg text-white text-tema-bg text-white text-tema-bg text-white text-tema-bg text-white text-tema-bg text-white text-tema-bg text-white">
-             <div class="flex items-center gap-4">
-                 <span class="text-white/70 text-white/70 text-white/70 text-white/70 text-white/70 text-white/70 text-white/70 text-white/70 text-white/70 text-white/70 text-white/70 text-white/70 text-white/70 text-white/70 text-white/70 text-white/70 text-white/70 text-white/70 text-white/70 text-white/70 text-white/70 text-white/70 text-white/70 text-white/70 text-white/70 text-white/70 text-white/70 text-white/70">ITEMS: {{ dbListaFiltrada.length }}</span>
-                 <span class="text-tema-2 border-l border-white/20 pl-4">MARGEN: <span class="text-[11px]">{{ utilidadPorcentaje }}</span></span>
-             </div>
-             
-             <div class="flex gap-4 items-center">
-                 <div class="flex gap-3 border-r border-white/20 pr-4">
-                    <div class="flex flex-col items-end leading-none text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg"><span class="text-tema-2 text-[7px] opacity-70 uppercase">Ingresos</span><span class="text-tema-2 font-black text-tema-2 text-tema-2 text-tema-2 text-tema-2 text-tema-2 text-tema-2 text-tema-2 text-tema-2 text-tema-2 text-tema-2 text-tema-2 text-tema-2 text-tema-2 text-tema-2 text-tema-2 text-tema-2 text-tema-2 text-tema-2 text-tema-2 text-tema-2 text-tema-2 text-tema-2 text-tema-2 text-tema-2 text-tema-2 text-tema-2 text-tema-2 text-tema-2 text-tema-2 text-tema-2 text-tema-2 text-tema-2">$ {{ formatInput(totalIngresos) }}</span></div>
-                    <div class="flex flex-col items-end leading-none text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg"><span class="text-red-400 text-[7px] opacity-70 uppercase">Gastos</span><span class="text-red-400 font-black text-red-400 text-red-400 text-red-400 text-red-400 text-red-400 text-red-400 text-red-400 text-red-400 text-red-400 text-red-400 text-red-400 text-red-400 text-red-400 text-red-400 text-red-400 text-red-400 text-red-400 text-red-400 text-red-400 text-red-400 text-red-400 text-red-400 text-red-400 text-red-400 text-red-400 text-red-400 text-red-400 text-red-400 text-red-400 text-red-400 text-red-400 text-red-400 text-red-400">$ {{ formatInput(totalGastos) }}</span></div>
-                 </div>
-                 <div class="flex gap-3 border-r border-white/20 pr-4 text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg">
-                    <div class="flex flex-col items-end leading-none text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg"><span class="text-tema-5 text-[7px] opacity-70 uppercase">Activos</span><span class="text-tema-5 font-black text-tema-5 text-tema-5 text-tema-5 text-tema-5 text-tema-5 text-tema-5 text-tema-5 text-tema-5 text-tema-5 text-tema-5 text-tema-5 text-tema-5 text-tema-5 text-tema-5 text-tema-5 text-tema-5 text-tema-5 text-tema-5 text-tema-5 text-tema-5 text-tema-5 text-tema-5 text-tema-5 text-tema-5 text-tema-5 text-tema-5 text-tema-5 text-tema-5 text-tema-5 text-tema-5 text-tema-5 text-tema-5 text-tema-5 text-tema-5 text-tema-5">$ {{ formatInput(totalActivos) }}</span></div>
-                    <div class="flex flex-col items-end leading-none text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg"><span class="text-orange-300 text-[7px] opacity-70 uppercase">Pasivos</span><span class="text-orange-300 font-black text-orange-300 text-orange-300 text-orange-300 text-orange-300 text-orange-300 text-orange-300 text-orange-300 text-orange-300 text-orange-300 text-orange-300 text-orange-300 text-orange-300 text-orange-300 text-orange-300 text-orange-300 text-orange-300 text-orange-300 text-orange-300 text-orange-300 text-orange-300 text-orange-300 text-orange-300 text-orange-300 text-orange-300 text-orange-300 text-orange-300 text-orange-300 text-orange-300 text-orange-300 text-orange-300 text-orange-300 text-orange-300 text-orange-300 text-orange-300 text-orange-300 text-orange-300">$ {{ formatInput(totalPasivos) }}</span></div>
-                 </div>
-                 <div class="flex flex-col items-end min-w-[70px] text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg">
-                    <span class="text-white/50 text-[7px] leading-none uppercase tracking-tighter text-white/50 text-white/50 text-white/50 text-white/50 text-white/50 text-white/50 text-white/50 text-white/50 text-white/50 text-white/50 text-white/50 text-white/50 text-white/50 text-white/50 text-white/50 text-white/50 text-white/50 text-white/50 text-white/50 text-white/50 text-white/50 text-white/50 text-white/50 text-white/50 text-white/50 text-white/50 text-white/50 text-white/50 text-white/50 text-white/50 text-white/50 text-white/50 text-white/50 text-white/50">Neto</span>
-                    <span class="text-[11px] font-black text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg text-tema-bg" :class="totalIngresos - totalGastos >= 0 ? 'text-tema-2' : 'text-red-400'">$ {{ formatInput(totalIngresos - totalGastos) }}</span>
-                 </div>
-             </div>
+        </div>
+
+        <!-- RESUMEN LAPTOP -->
+        <div class="hidden md:flex bg-tema-1 text-white rounded-lg px-4 py-2 mt-2 items-center justify-between gap-3 text-xs font-bold">
+          <span>{{ dbListaFiltrada.length }} movimientos</span>
+          <span>Margen: {{ utilidadPorcentaje }}</span>
+          <span>Ingresos: $ {{ formatInput(totalIngresos) }}</span>
+          <span>Gastos: $ {{ formatInput(totalGastos) }}</span>
+          <span>Activos: $ {{ formatInput(totalActivos) }}</span>
+          <span>Pasivos: $ {{ formatInput(totalPasivos) }}</span>
+          <span>Neto: $ {{ formatInput(movimientosNeto) }}</span>
+        </div>
+
+        <!-- RESUMEN MÓVIL FLOTANTE -->
+        <div
+          class="md:hidden fixed inset-x-3 z-40"
+          style="bottom: calc(12px + env(safe-area-inset-bottom, 0px));"
+        >
+          <div class="bg-tema-1 text-white rounded-xl shadow-2xl overflow-hidden">
+            <button
+              type="button"
+              @click="showMovimientosSummary = !showMovimientosSummary"
+              :aria-expanded="String(showMovimientosSummary)"
+              class="w-full min-h-[72px] flex items-center justify-between gap-3 px-3 py-3 text-left"
+            >
+              <div class="min-w-0">
+                <p class="text-[9px] text-white/70 font-bold uppercase">
+                  {{ dbListaFiltrada.length }} movimientos · Margen {{ utilidadPorcentaje }}
+                </p>
+                <p class="text-base font-black">
+                  Neto: $ {{ formatInput(movimientosNeto) }}
+                </p>
+              </div>
+              <span class="material-symbols-outlined">
+                {{ showMovimientosSummary ? 'expand_more' : 'expand_less' }}
+              </span>
+            </button>
+
+            <div
+              v-if="showMovimientosSummary"
+              class="grid grid-cols-2 gap-2 p-3 pt-0 border-t border-white/20"
+            >
+              <div class="bg-white/10 rounded-lg p-2">
+                <p class="text-[10px] text-white/70">Ingresos</p>
+                <p class="text-xs font-black">$ {{ formatInput(totalIngresos) }}</p>
+              </div>
+              <div class="bg-white/10 rounded-lg p-2">
+                <p class="text-[10px] text-white/70">Gastos</p>
+                <p class="text-xs font-black">$ {{ formatInput(totalGastos) }}</p>
+              </div>
+              <div class="bg-white/10 rounded-lg p-2">
+                <p class="text-[10px] text-white/70">Activos</p>
+                <p class="text-xs font-black">$ {{ formatInput(totalActivos) }}</p>
+              </div>
+              <div class="bg-white/10 rounded-lg p-2">
+                <p class="text-[10px] text-white/70">Pasivos</p>
+                <p class="text-xs font-black">$ {{ formatInput(totalPasivos) }}</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
+      <!-- FIN VISTA: LISTA -->
+
 
       <!-- =========================================================
         VISTA: PROYECCIÓN

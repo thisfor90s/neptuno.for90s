@@ -56,6 +56,22 @@ new Vue({
     isSyncingBackground: false,
     searchQuery: '',
 
+    movimientosFiltersOpen: false,
+    showMovimientosSummary: false,
+
+    movimientosLastPreset: 'mes',
+    movimientosRangeStart: '',
+    movimientosRangeEnd: '',
+    movimientosAppliedStart: '',
+    movimientosAppliedEnd: '',
+
+    movimientosCalendarOpen: false,
+    movimientosCalendarYear: new Date().getFullYear(),
+    movimientosCalendarMonth: new Date().getMonth(),
+
+    movimientosHistoryReady: false,
+    movimientosHistoryError: false,
+
     filters: {
       tipo: '',
       grupo: '',
@@ -853,6 +869,61 @@ new Vue({
       };
     },
 
+    
+    movimientosCalendarLabel() {
+      return new Date(
+        this.movimientosCalendarYear,
+        this.movimientosCalendarMonth,
+        1
+      ).toLocaleDateString('es-CO', {
+        month: 'long',
+        year: 'numeric'
+      });
+    },
+
+    movimientosCalendarDays() {
+      const y = this.movimientosCalendarYear;
+      const m = this.movimientosCalendarMonth;
+
+      const offset = (new Date(y, m, 1).getDay() + 6) % 7;
+      const count = new Date(y, m + 1, 0).getDate();
+
+      const days = Array(offset).fill(null);
+
+      for (let d = 1; d <= count; d++) {
+        days.push({
+          day: d,
+          value: this.dashboardDateToISO(new Date(y, m, d))
+        });
+      }
+
+      return days;
+    },
+
+    movimientosEffectivePeriod() {
+      if (this.filters.periodo !== 'rango') {
+        return this.filters.periodo;
+      }
+
+      if (
+        !this.movimientosAppliedStart ||
+        !this.movimientosAppliedEnd ||
+        !this.movimientosHistoryReady
+      ) {
+        return this.movimientosLastPreset;
+      }
+
+      return 'rango';
+    },
+
+    
+    movimientosNeto() {
+      return this.totalIngresos - this.totalGastos;
+    },
+
+
+
+
     dbListaFiltrada() {
       return this.dbLista.filter(t => {
         const refDateStr = this.filters.useFechaPago
@@ -865,14 +936,19 @@ new Vue({
         const today = new Date();
         let matchPeriodo = true;
 
-        if (this.filters.periodo) {
+        
+        const effectivePeriod = this.movimientosEffectivePeriod;
+
+        if (effectivePeriod) {
           const y = itemDate.getFullYear();
           const m = itemDate.getMonth();
           const currentY = today.getFullYear();
           const currentM = today.getMonth();
 
-          switch (this.filters.periodo) {
+          
+          switch (effectivePeriod) {
             case 'año':
+
               matchPeriodo = (y === currentY);
               break;
             case 'año_anterior':
@@ -897,6 +973,24 @@ new Vue({
               matchPeriodo = (itemDate >= startOfWeek && itemDate <= endOfWeek);
               break;
             }
+
+            
+            case 'rango': {
+              const start = this.dashboardISOToDate(
+                this.movimientosAppliedStart
+              );
+
+              const end = this.dashboardISOToDate(
+                this.movimientosAppliedEnd
+              );
+
+              matchPeriodo = !!start && !!end &&
+                itemDate >= start &&
+                itemDate <= end;
+
+              break;
+            }
+
           }
         }
 
@@ -1622,6 +1716,102 @@ new Vue({
   },
 
   methods: {
+
+    
+    movimientosOnPeriodChange() {
+      if (this.filters.periodo === 'rango') {
+        this.movimientosCalendarOpen = true;
+
+        const date = this.dashboardISOToDate(
+          this.movimientosRangeStart
+        );
+
+        if (date) {
+          this.movimientosCalendarYear = date.getFullYear();
+          this.movimientosCalendarMonth = date.getMonth();
+        }
+      } else {
+        this.movimientosLastPreset = this.filters.periodo;
+        this.movimientosCalendarOpen = false;
+      }
+    },
+
+    movimientosChangeMonth(delta) {
+      const date = new Date(
+        this.movimientosCalendarYear,
+        this.movimientosCalendarMonth + delta,
+        1
+      );
+
+      this.movimientosCalendarYear = date.getFullYear();
+      this.movimientosCalendarMonth = date.getMonth();
+    },
+
+    movimientosSelectDay(value) {
+      if (!value) return;
+
+      if (!this.movimientosRangeStart || this.movimientosRangeEnd) {
+        this.movimientosRangeStart = value;
+        this.movimientosRangeEnd = '';
+        return;
+      }
+
+      if (value < this.movimientosRangeStart) {
+        this.movimientosRangeStart = value;
+        this.movimientosRangeEnd = '';
+        return;
+      }
+
+      this.movimientosRangeEnd = value;
+    },
+
+    movimientosDayClass(value) {
+      const start = this.movimientosRangeStart;
+      const end = this.movimientosRangeEnd;
+
+      if (value === start || value === end) {
+        return 'bg-tema-1 text-white font-black';
+      }
+
+      if (start && end && value > start && value < end) {
+        return 'bg-blue-100 text-tema-1';
+      }
+
+      return 'text-gray-600 hover:bg-tema-bg';
+    },
+
+    movimientosApplyRange() {
+      const start = this.dashboardISOToDate(
+        this.movimientosRangeStart
+      );
+
+      const end = this.dashboardISOToDate(
+        this.movimientosRangeEnd
+      );
+
+      if (!start || !end || end < start) return;
+
+      this.movimientosAppliedStart = this.movimientosRangeStart;
+      this.movimientosAppliedEnd = this.movimientosRangeEnd;
+      this.movimientosCalendarOpen = false;
+    },
+
+    movimientosClearRange() {
+      this.movimientosRangeStart = '';
+      this.movimientosRangeEnd = '';
+      this.movimientosAppliedStart = '';
+      this.movimientosAppliedEnd = '';
+    },
+
+    movimientosResetFilters() {
+      this.resetFilters();
+      this.movimientosClearRange();
+      this.movimientosLastPreset = 'mes';
+      this.movimientosCalendarOpen = false;
+      this.movimientosFiltersOpen = false;
+    },
+
+
 
     
     dashboardDateToISO(date) {
@@ -2560,10 +2750,14 @@ new Vue({
       }
     },
 
+    
     async fetchListData(silent = false) {
       if (!silent) {
         this.isLoadingList = true;
+        this.movimientosHistoryReady = false;
+        this.movimientosHistoryError = false;
         this.dbLista = [];
+
       } else {
         this.isSyncingBackground = true;
       }
@@ -2583,11 +2777,22 @@ new Vue({
 
         const response2 = await apiGet('getListData', { onlyCurrentYear: false });
 
+        
         if (response2.success) {
           this.dbLista = response2.data.items || [];
+          this.movimientosHistoryReady = true;
+          this.movimientosHistoryError = false;
+        } else {
+          this.movimientosHistoryReady = false;
+          this.movimientosHistoryError = true;
         }
+
       } catch (error) {
         console.error(error);
+        
+        this.movimientosHistoryReady = false;
+        this.movimientosHistoryError = true;
+
         this.failedErrorMessage = 'Error cargando movimientos';
         this.showErrorModal = true;
 
