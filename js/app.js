@@ -78,6 +78,7 @@ new Vue({
     dbFormasPago: [],
     dbTablaPG: [],
     dbFlash: [],
+    flashSearchQuery: '',
     dbLista: [],
 
     isLoadingList: false,
@@ -112,7 +113,6 @@ new Vue({
 
     tesoreriaFilter: 'hoy',
     showSaldoGeneral: false,
-    dashboardFilter: 'ytd',
     dashboardFilter: 'ytd',
     dashboardLastPresetFilter: 'ytd',
     dashTableFilterTipo: '',
@@ -183,6 +183,35 @@ new Vue({
   },
 
   computed: {
+
+    
+    dbFlashFiltrada() {
+      const normalizar = valor =>
+        String(valor == null ? '' : valor)
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .toLowerCase()
+          .trim();
+
+      const consulta = normalizar(this.flashSearchQuery);
+
+      if (!consulta) return this.dbFlash;
+
+      return this.dbFlash.filter(item => {
+        const contenido = [
+          item.categoria,
+          item.grupo,
+          item.tipo,
+          item.descripcion,
+          item.medio,
+          item.tercero
+        ].map(normalizar).join(' ');
+
+        return contenido.includes(consulta);
+      });
+    },
+
+
 
     hayFiltroTesoreria() {
       return this.tesoreriaSelectedSources.length !== this.fuentesSeleccionablesTesoreria.length;
