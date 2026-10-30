@@ -440,10 +440,14 @@
           <!-- =====================================================
             TESORERÍA / KPIS SUPERIORES
           ===================================================== -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+          
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
 
-            <!-- Saldo General -->
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-3 border-l-[4px] border-l-tema-4">
+
+            
+            
+            <div class="order-2 bg-white rounded-xl border border-gray-200 shadow-sm p-3 border-l-[4px] border-l-tema-4">
+
               <div class="flex justify-between items-start gap-2">
                 <div>
                   <p class="text-[8px] font-black uppercase tracking-widest text-gray-400">
@@ -454,16 +458,33 @@
                   </p>
                 </div>
 
-                <span class="material-symbols-outlined text-[18px] text-tema-4">account_balance_wallet</span>
+                <button
+                  type="button"
+                  @click="showSaldoGeneral = !showSaldoGeneral"
+                  :aria-label="showSaldoGeneral ? 'Ocultar saldo general' : 'Mostrar saldo general'"
+                  :aria-pressed="String(showSaldoGeneral)"
+                  :title="showSaldoGeneral ? 'Ocultar saldo' : 'Mostrar saldo'"
+                  class="w-9 h-9 flex items-center justify-center rounded-lg text-tema-4 hover:bg-green-50 focus:outline-none focus:ring-2 focus:ring-tema-4 transition-colors"
+                >
+                  <span class="material-symbols-outlined text-[21px]">
+                    {{ showSaldoGeneral ? 'visibility_off' : 'visibility' }}
+                  </span>
+                </button>
               </div>
 
-              <p class="mt-2 text-[22px] font-black leading-none text-tema-1">
-                $ {{ formatInput(totalConsolidadoTesoreria) }}
+              <p class="mt-2 text-[22px] font-black leading-none text-tema-1 min-h-[28px]">
+                <template v-if="showSaldoGeneral">
+                  $ {{ formatInput(totalConsolidadoTesoreria) }}
+                </template>
+                <template v-else>
+                  $ ••••••
+                </template>
               </p>
             </div>
 
+
             <!-- Seleccionado -->
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-3 border-l-[4px]" :class="hayFiltroTesoreria ? 'border-l-tema-2' : 'border-l-gray-300'">
+            <div class="order-1 bg-white rounded-xl border border-gray-200 shadow-sm p-3 border-l-[4px]" :class="hayFiltroTesoreria ? 'border-l-tema-2' : 'border-l-gray-300'">
               <div class="flex justify-between items-start gap-2">
                 <div>
                   <p class="text-[8px] font-black uppercase tracking-widest text-gray-400">
@@ -481,53 +502,6 @@
                 $ {{ formatInput(totalSeleccionadoTesoreria) }}
               </p>
             </div>
-
-            <!-- Cuadre Sistema -->
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-3 border-l-[4px] border-l-tema-5">
-              <div class="flex justify-between items-start gap-2">
-                <div>
-                  <p class="text-[8px] font-black uppercase tracking-widest text-gray-400">
-                    Sistema
-                  </p>
-                  <p class="text-[9px] font-bold text-gray-400 mt-1">
-                    Base para auditoría
-                  </p>
-                </div>
-
-                <span class="material-symbols-outlined text-[18px] text-tema-5">database</span>
-              </div>
-
-              <p class="mt-2 text-[22px] font-black leading-none text-tema-1">
-                $ {{ formatInput(totalCuadreSistema) }}
-              </p>
-            </div>
-
-            <!-- Diferencia Cuadre -->
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-3 border-l-[4px]" :class="totalCuadreDiferencia === 0 ? 'border-l-gray-300' : (totalCuadreDiferencia > 0 ? 'border-l-tema-4' : 'border-l-red-500')">
-              <div class="flex justify-between items-start gap-2">
-                <div>
-                  <p class="text-[8px] font-black uppercase tracking-widest text-gray-400">
-                    Diferencia
-                  </p>
-                  <p class="text-[9px] font-bold text-gray-400 mt-1">
-                    Sistema vs saldo real
-                  </p>
-                </div>
-
-                <span
-                  class="material-symbols-outlined text-[18px]"
-                  :class="totalCuadreDiferencia === 0 ? 'text-gray-300' : (totalCuadreDiferencia > 0 ? 'text-tema-4' : 'text-red-500')">
-                  rule
-                </span>
-              </div>
-
-              <p
-                class="mt-2 text-[22px] font-black leading-none"
-                :class="totalCuadreDiferencia === 0 ? 'text-gray-400' : (totalCuadreDiferencia > 0 ? 'text-tema-4' : 'text-red-500')">
-                {{ totalCuadreDiferencia === 0 ? '$ 0' : (totalCuadreDiferencia > 0 ? '+ $ ' : '- $ ') + formatInput(Math.abs(totalCuadreDiferencia)) }}
-              </p>
-            </div>
-
           </div>
 
           <!-- =====================================================

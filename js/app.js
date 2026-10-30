@@ -83,6 +83,8 @@ new Vue({
     },
 
     tesoreriaFilter: 'hoy',
+    showSaldoGeneral: false,
+    dashboardFilter: 'ytd',
     dashboardFilter: 'ytd',
     dashboardLastPresetFilter: 'ytd',
     dashTableFilterTipo: '',
