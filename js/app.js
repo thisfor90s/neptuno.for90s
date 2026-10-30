@@ -5,6 +5,34 @@
 // =====================================================
 const DEFAULT_ACTIVE_VIEW = 'proyeccion';
 
+Vue.directive('click-outside', {
+  bind(el, binding, vnode) {
+    el.__clickOutsideHandler__ = function(event) {
+      if (el === event.target || el.contains(event.target)) {
+        return;
+      }
+
+      if (typeof binding.value === 'function') {
+        binding.value(event);
+      }
+    };
+
+    document.addEventListener(
+      'pointerdown',
+      el.__clickOutsideHandler__
+    );
+  },
+
+  unbind(el) {
+    document.removeEventListener(
+      'pointerdown',
+      el.__clickOutsideHandler__
+    );
+
+    delete el.__clickOutsideHandler__;
+  }
+});
+
 new Vue({
   el: '#app',
 
@@ -1720,6 +1748,12 @@ new Vue({
   methods: {
 
     
+    movimientosCloseCalendarOutside() {
+      if (this.movimientosCalendarOpen) {
+        this.movimientosCalendarOpen = false;
+      }
+    },
+
     movimientosOnPeriodChange() {
       if (this.filters.periodo === 'rango') {
         this.movimientosCalendarOpen = true;
@@ -1916,6 +1950,13 @@ new Vue({
       this.dashboardRangeEnd = '';
       this.dashboardAppliedStart = '';
       this.dashboardAppliedEnd = '';
+    },
+
+    
+    dashboardCloseCalendarOutside() {
+      if (this.dashboardCalendarOpen) {
+        this.dashboardCalendarOpen = false;
+      }
     },
 
     
