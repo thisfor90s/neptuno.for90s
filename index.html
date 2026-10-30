@@ -547,7 +547,12 @@
                       Subtotal
                     </p>
                     <p class="text-[12px] font-black text-tema-1 leading-tight mt-1">
-                      $ {{ formatInput(grupo.total) }}
+                      <template v-if="showSaldoGeneral">
+                        $ {{ formatInput(grupo.total) }}
+                      </template>
+                      <template v-else>
+                        $ ••••••
+                      </template>
                     </p>
                   </div>
                 </div>
