@@ -163,7 +163,9 @@
     </div>
   </div>
 
-  <div v-else class="flex-1 flex overflow-hidden animate-fade-in relative text-tema-3">
+  
+  <div v-else class="flex-1 flex overflow-hidden relative text-tema-3">
+
     <div v-if="!isDesktopView && showSidebar" @click="showSidebar = false" class="absolute inset-0 bg-tema-3/40 z-10 transition-opacity"></div>
 
     <!-- SIDEBAR -->
@@ -213,10 +215,47 @@
     <main class="flex-1 overflow-y-auto p-4 md:p-6 h-full bg-tema-bg text-tema-3">
       
       <!-- BOTÓN MENÚ MÓVIL -->
-      <button v-if="!isDesktopView" @click="showSidebar = true" class="mb-4 p-2 bg-tema-1 text-white rounded-md shadow-md md:hidden flex items-center">
-        <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-        Menú
-      </button>
+      
+      <!-- CABECERA MÓVIL UNIFICADA -->
+      <div
+        v-if="!isDesktopView"
+        class="md:hidden flex items-center justify-between gap-3 mb-3 pb-2 border-b border-gray-200"
+      >
+        <button
+          type="button"
+          @click="showSidebar = true"
+          aria-label="Abrir menú de navegación"
+          class="shrink-0 flex items-center gap-2 p-2 bg-tema-1 text-white rounded-md shadow-md font-bold"
+        >
+          <span class="material-symbols-outlined text-xl">menu</span>
+          <span>Menú</span>
+        </button>
+
+        <div class="flex items-center justify-end gap-1.5 min-w-0 text-tema-1">
+          <span class="material-symbols-outlined text-xl shrink-0">
+            {{ {
+              registrarPG: 'local_mall',
+              flash: 'bolt',
+              lista: 'format_list_bulleted',
+              tesoreria: 'savings',
+              dashboard: 'space_dashboard',
+              proyeccion: 'query_stats'
+            }[activeView] || 'dashboard' }}
+          </span>
+
+          <span class="text-base font-black truncate">
+            {{ {
+              registrarPG: 'Registrar P&G',
+              flash: 'Registro Flash',
+              lista: 'Movimientos',
+              tesoreria: 'Tesorería',
+              dashboard: 'Dashboard Financiero',
+              proyeccion: 'Proyección'
+            }[activeView] || '' }}
+          </span>
+        </div>
+      </div>
+
 
       <!-- MODAL ERROR -->
       <div v-if="showErrorModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4 text-tema-3">
@@ -231,7 +270,9 @@
       <!-- VISTA: REGISTRAR P&G -->
       <div v-if="activeView === 'registrarPG'" class="animate-fade-in max-w-4xl mx-auto text-tema-3">
         <div class="flex justify-between items-center mb-5 border-b-2 border-gray-300 pb-2 text-tema-3">
-          <div class="flex items-center text-tema-1"><span class="material-symbols-outlined text-3xl mr-3 text-tema-1">local_mall</span><h2 class="text-3xl font-black">Registrar P&G</h2></div>
+          
+          <div class="hidden md:flex items-center text-tema-1"><span class="material-symbols-outlined text-3xl mr-3 text-tema-1">local_mall</span><h2 class="text-3xl font-black">Registrar P&G</h2></div>
+
           <div v-if="isLoadingFormData" class="flex items-center text-gray-500 text-sm"><div class="loader-small mr-2"></div>Cargando...</div>
         </div>
         <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-300">
@@ -270,7 +311,9 @@
       <!-- VISTA: FLASH -->
       <div v-if="activeView === 'flash'" class="animate-fade-in max-w-5xl mx-auto text-tema-3">
         <div class="flex justify-between items-center mb-5 border-b-2 border-gray-300 pb-2 text-tema-3">
-          <div class="flex items-center text-tema-1 text-tema-3"><span class="material-symbols-outlined text-3xl mr-3 text-tema-1">bolt</span><h2 class="text-3xl font-black">Registro Flash</h2></div>
+          
+          <div class="hidden md:flex items-center text-tema-1 text-tema-3"><span class="material-symbols-outlined text-3xl mr-3 text-tema-1">bolt</span><h2 class="text-3xl font-black">Registro Flash</h2></div>
+
           <div v-if="isLoadingFormData" class="flex items-center text-gray-500 text-sm"><div class="loader-small mr-2"></div>Cargando...</div>
         </div>
         <div v-for="(item, index) in dbFlash" :key="index" class="flex flex-col md:flex-row items-center gap-3 bg-white p-2 rounded-lg border border-gray-200 shadow-sm mb-2 hover:border-tema-1 transition-all">
@@ -321,7 +364,8 @@
         ======================================================= -->
         <div class="flex flex-col xl:flex-row xl:justify-between xl:items-center gap-2 mb-3 border-b-2 border-gray-300 pb-2">
 
-          <div class="flex items-center text-tema-1">
+          
+          <div class="hidden md:flex items-center text-tema-1">
             <span class="material-symbols-outlined text-2xl md:text-3xl mr-2 text-tema-1">savings</span>
 
             <div>
@@ -334,6 +378,7 @@
               </p>
             </div>
           </div>
+
 
           <div class="flex items-center gap-2 overflow-x-auto pb-1 xl:pb-0">
 
@@ -743,18 +788,20 @@
         </div>
       </div>
 
-      
       <!-- VISTA: LISTA -->
       <div
         v-if="activeView === 'lista'"
-        class="animate-fade-in flex flex-col h-full min-h-0 text-tema-3"
+        class="flex flex-col h-full min-h-0 text-tema-3"
       >
+
         <!-- CABECERA -->
         <div class="flex items-center justify-between gap-2 mb-3 pb-2 border-b-2 border-gray-200">
-          <div class="flex items-center gap-2 text-tema-1">
+          
+          <div class="hidden md:flex items-center gap-2 text-tema-1">
             <span class="material-symbols-outlined text-2xl">format_list_bulleted</span>
             <h2 class="text-xl md:text-3xl font-black">Movimientos</h2>
           </div>
+
 
           <span
             v-if="isLoadingList || isSyncingBackground"
@@ -1141,9 +1188,10 @@
         <!-- RESUMEN MÓVIL FLOTANTE -->
         <div
           class="md:hidden fixed inset-x-3 z-40"
-          style="bottom: calc(12px + env(safe-area-inset-bottom, 0px));"
+          style="bottom: calc(16px + env(safe-area-inset-bottom, 0px));"
         >
-          <div class="bg-tema-1 text-white rounded-xl shadow-2xl overflow-hidden">
+          <div class="bg-tema-1 text-white rounded-xl shadow-2xl overflow-hidden max-h-[65dvh] flex flex-col">
+
             <button
               type="button"
               @click="showMovimientosSummary = !showMovimientosSummary"
@@ -1165,8 +1213,9 @@
 
             <div
               v-if="showMovimientosSummary"
-              class="grid grid-cols-2 gap-2 p-3 pt-0 border-t border-white/20"
+              class="grid grid-cols-2 gap-2 p-3 pt-0 border-t border-white/20 overflow-y-auto min-h-0"
             >
+
               <div class="bg-white/10 rounded-lg p-2">
                 <p class="text-[10px] text-white/70">Ingresos</p>
                 <p class="text-xs font-black">$ {{ formatInput(totalIngresos) }}</p>
@@ -1195,14 +1244,16 @@
         Presupuesto vs ejecución real
         Front temporal con datos simulados
       ========================================================= -->
-      <div v-if="activeView === 'proyeccion'" class="animate-fade-in flex flex-col h-full overflow-hidden text-tema-3">
+      <div v-if="activeView === 'proyeccion'" class="flex flex-col h-full overflow-hidden text-tema-3">
+
 
         <!-- =======================================================
           PROYECCIÓN / HEADER COMPACTO
         ======================================================= -->
         <div class="flex flex-col xl:flex-row xl:justify-between xl:items-center gap-2 mb-2 border-b-2 border-gray-300 pb-1.5 flex-shrink-0">
 
-          <div class="flex items-center text-tema-1">
+          
+          <div class="hidden md:flex items-center text-tema-1">
             <span class="material-symbols-outlined text-2xl md:text-3xl mr-2 text-tema-1">query_stats</span>
             <div>
               <h2 class="text-2xl md:text-3xl font-black leading-none">Proyección</h2>
@@ -1211,6 +1262,7 @@
               </p>
             </div>
           </div>
+
 
           <div class="flex items-center gap-1.5 overflow-x-auto pb-1 xl:pb-0">
 
@@ -1738,27 +1790,6 @@
               </tbody>
             </table>
           </div>
-
-          <!-- =====================================================
-            PROYECCIÓN / FOOTER FLUJO DE CAJA
-          ===================================================== -->
-          <div class="bg-tema-1 text-white py-1.5 px-4 border-t border-tema-2 shadow-2xl z-30 flex-shrink-0 flex flex-col md:flex-row justify-between items-center gap-2 text-[9px] font-black uppercase tracking-tight">
-            <div class="flex items-center gap-4">
-              <span class="text-white/70">ITEMS: {{ projectionTableRowsFiltered.length }}</span>
-              <span class="text-tema-2 border-l border-white/20 pl-4">Periodo: {{ projectionCurrentPeriodLabel }}</span>
-            </div>
-
-            <div class="flex gap-4 items-center">
-              <span>Entradas: <b class="text-tema-2">$ {{ formatInput(projectionTotals.ejecutadoEntradas) }}</b></span>
-              <span>Salidas: <b class="text-red-400">$ {{ formatInput(projectionTotals.ejecutadoSalidas) }}</b></span>
-              <span>
-                Neto Real:
-                <b :class="projectionTotals.netoEjecutado >= 0 ? 'text-tema-2' : 'text-red-400'">
-                  $ {{ formatInput(Math.abs(projectionTotals.netoEjecutado)) }}
-                </b>
-              </span>
-            </div>
-          </div>
         </div>
 
         <!-- =======================================================
@@ -2225,7 +2256,9 @@
       <!-- VISTA: DASHBOARD -->
       <div v-if="activeView === 'dashboard'" class="animate-fade-in max-w-7xl mx-auto text-tema-3">
         <div class="flex justify-between items-center mb-4 border-b-2 border-gray-300 pb-1.5">
-          <div class="flex items-center text-tema-1"><span class="material-symbols-outlined text-2xl mr-2">space_dashboard</span><h2 class="text-2xl font-black">Dashboard Financiero</h2></div>
+          
+          <div class="hidden md:flex items-center text-tema-1"><span class="material-symbols-outlined text-2xl mr-2">space_dashboard</span><h2 class="text-2xl font-black">Dashboard Financiero</h2></div>
+
           
           <div class="flex items-center gap-2">
             <span class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Periodo:</span>
