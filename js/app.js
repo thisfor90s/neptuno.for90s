@@ -68,8 +68,19 @@ new Vue({
 
     tesoreriaFilter: 'hoy',
     dashboardFilter: 'ytd',
+    dashboardLastPresetFilter: 'ytd',
     dashTableFilterTipo: '',
     dashTableFilterGrupo: '',
+    isDashboardDetailOpen: false,
+
+    dashboardRangeStart: '',
+    dashboardRangeEnd: '',
+    dashboardAppliedStart: '',
+    dashboardAppliedEnd: '',
+    dashboardCalendarOpen: false,
+    dashboardCalendarYear: new Date().getFullYear(),
+    dashboardCalendarMonth: new Date().getMonth(),
+    dashboardHistoryReady: false,
     
     tesoreriaSelectedDefaultSources: ['Nequi', 'Daviplata', 'Cash', 'Bbva Libreton #1782'],
     tesoreriaSelectedSources: [],
@@ -369,6 +380,53 @@ new Vue({
       }, 0);
     },
 
+    
+    dashboardCalendarLabel() {
+      const date = new Date(
+        this.dashboardCalendarYear,
+        this.dashboardCalendarMonth,
+        1
+      );
+
+      return date.toLocaleDateString('es-CO', {
+        month: 'long',
+        year: 'numeric'
+      });
+    },
+
+    dashboardCalendarDays() {
+      const year = this.dashboardCalendarYear;
+      const month = this.dashboardCalendarMonth;
+
+      const firstDay = new Date(year, month, 1);
+      const offset = (firstDay.getDay() + 6) % 7;
+      const totalDays = new Date(year, month + 1, 0).getDate();
+
+      const days = Array(offset).fill(null);
+
+      for (let day = 1; day <= totalDays; day++) {
+        const date = new Date(year, month, day);
+
+        days.push({
+          day,
+          value: this.dashboardDateToISO(date)
+        });
+      }
+
+      return days;
+    },
+
+    dashboardRangeReady() {
+      return this.dashboardFilter !== 'rango' ||
+        (
+          !!this.dashboardAppliedStart &&
+          !!this.dashboardAppliedEnd &&
+          this.dashboardHistoryReady
+        );
+    },
+
+
+
     dashboardDates() {
       const today = new Date();
       const y = today.getFullYear();
@@ -378,7 +436,17 @@ new Vue({
       let currStart = new Date(), currEnd = new Date(), prevStart = new Date(), prevEnd = new Date();
       let compareText = '';
 
-      switch (this.dashboardFilter) {
+      const effectiveFilter =
+        this.dashboardFilter === 'rango' &&
+        (
+          !this.dashboardAppliedStart ||
+          !this.dashboardAppliedEnd ||
+          !this.dashboardHistoryReady
+        )
+          ? this.dashboardLastPresetFilter
+          : this.dashboardFilter;
+
+      switch (effectiveFilter) {
         case 'este_mes':
           currStart = new Date(y, m, 1);
           currEnd = new Date(y, m, d);
@@ -407,6 +475,61 @@ new Vue({
           prevEnd = new Date(y - 2, 11, 31);
           compareText = 'vs. Año Ant. del Pasado';
           break;
+        
+        case 'rango': {
+          const start = this.dashboardISOToDate(
+            this.dashboardAppliedStart
+          );
+
+          const end = this.dashboardISOToDate(
+            this.dashboardAppliedEnd
+          );
+
+          if (!start || !end || end < start) {
+            currStart = new Date(y, 0, 1);
+            currEnd = new Date(y, m, d);
+            prevStart = new Date(y - 1, 0, 1);
+            prevEnd = new Date(y - 1, m, d);
+            compareText = 'Rango pendiente de aplicar';
+            break;
+          }
+
+          currStart = start;
+          currEnd = end;
+
+          // Duración en días calendario, incluyendo ambos extremos.
+          const days = Math.round(
+            (
+              Date.UTC(
+                end.getFullYear(),
+                end.getMonth(),
+                end.getDate()
+              ) -
+              Date.UTC(
+                start.getFullYear(),
+                start.getMonth(),
+                start.getDate()
+              )
+            ) / 86400000
+          ) + 1;
+
+          // El período comparativo termina el día anterior.
+          prevEnd = new Date(
+            start.getFullYear(),
+            start.getMonth(),
+            start.getDate() - 1
+          );
+
+          prevStart = new Date(
+            prevEnd.getFullYear(),
+            prevEnd.getMonth(),
+            prevEnd.getDate() - days + 1
+          );
+
+          compareText = 'vs. Periodo Anterior (' + days + ' días)';
+          break;
+        }
+
       }
 
       currStart.setHours(0, 0, 0, 0);
@@ -1499,6 +1622,140 @@ new Vue({
   },
 
   methods: {
+
+    
+    dashboardDateToISO(date) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+
+      return `${y}-${m}-${d}`;
+    },
+
+    dashboardISOToDate(value) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(value || '')) {
+        return null;
+      }
+
+      const [y, m, d] = value.split('-').map(Number);
+      const date = new Date(y, m - 1, d);
+
+      if (
+        date.getFullYear() !== y ||
+        date.getMonth() !== m - 1 ||
+        date.getDate() !== d
+      ) {
+        return null;
+      }
+
+      return date;
+    },
+
+    dashboardFormatDate(value) {
+      const date = this.dashboardISOToDate(value);
+      if (!date) return 'Seleccionar';
+
+      return date.toLocaleDateString('es-CO', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      });
+    },
+
+    dashboardChangeMonth(delta) {
+      const date = new Date(
+        this.dashboardCalendarYear,
+        this.dashboardCalendarMonth + delta,
+        1
+      );
+
+      this.dashboardCalendarYear = date.getFullYear();
+      this.dashboardCalendarMonth = date.getMonth();
+    },
+
+    dashboardSelectDay(value) {
+      if (!value) return;
+
+      if (!this.dashboardRangeStart || this.dashboardRangeEnd) {
+        this.dashboardRangeStart = value;
+        this.dashboardRangeEnd = '';
+        return;
+      }
+
+      if (value < this.dashboardRangeStart) {
+        this.dashboardRangeStart = value;
+        this.dashboardRangeEnd = '';
+        return;
+      }
+
+      this.dashboardRangeEnd = value;
+    },
+
+    dashboardDayClass(value) {
+      if (!value) return '';
+
+      const start = this.dashboardRangeStart;
+      const end = this.dashboardRangeEnd;
+
+      if (value === start || value === end) {
+        return 'bg-tema-1 text-white font-black';
+      }
+
+      if (start && end && value > start && value < end) {
+        return 'bg-blue-100 text-tema-1';
+      }
+
+      return 'text-gray-600 hover:bg-tema-bg';
+    },
+
+    dashboardApplyRange() {
+      const start = this.dashboardISOToDate(this.dashboardRangeStart);
+      const end = this.dashboardISOToDate(this.dashboardRangeEnd);
+
+      if (!start || !end || end < start) return;
+
+      this.dashboardAppliedStart = this.dashboardRangeStart;
+      this.dashboardAppliedEnd = this.dashboardRangeEnd;
+      this.dashboardCalendarOpen = false;
+    },
+
+    dashboardClearRange() {
+      this.dashboardRangeStart = '';
+      this.dashboardRangeEnd = '';
+      this.dashboardAppliedStart = '';
+      this.dashboardAppliedEnd = '';
+    },
+
+    
+    dashboardOnPeriodChange() {
+      if (this.dashboardFilter === 'rango') {
+        this.dashboardCalendarOpen = true;
+
+        if (this.dashboardRangeStart) {
+          const date = this.dashboardISOToDate(
+            this.dashboardRangeStart
+          );
+
+          if (date) {
+            this.dashboardCalendarYear = date.getFullYear();
+            this.dashboardCalendarMonth = date.getMonth();
+          }
+        }
+      } else {
+        this.dashboardLastPresetFilter = this.dashboardFilter;
+        this.dashboardCalendarOpen = false;
+      }
+
+      this.$nextTick(() => {
+        if (this.activeView === 'dashboard') {
+          this.renderCharts();
+        }
+      });
+    },
+
+
+
+
     async fetchTRM() {
       this.isFetchingTRM = true;
       try {
@@ -1629,6 +1886,7 @@ new Vue({
 
     openDashboard() {
       this.resetFilters();
+      this.isDashboardDetailOpen = false;
       this.activeView = 'dashboard';
       this.fetchInitialDashboardData();
     },
@@ -2430,11 +2688,13 @@ new Vue({
         this.tesoreriaSelectedSources.splice(index, 1);
       }
     },
-
+    
     async fetchInitialDashboardData() {
       this.isLoadingList = true;
       this.isSyncingBackground = false;
+      this.dashboardHistoryReady = false;
       this.dbLista = [];
+
 
       try {
         const response1 = await apiGet('getListData', { onlyCurrentYear: true });
@@ -2455,9 +2715,17 @@ new Vue({
 
         apiGet('getListData', { onlyCurrentYear: false })
           .then(response2 => {
+            
             if (response2.success) {
               this.dbLista = response2.data.items || [];
+              this.dashboardHistoryReady = true;
+            } else {
+              this.dashboardHistoryReady = false;
+              this.failedErrorMessage =
+                'No se pudo completar la carga histórica del Dashboard';
+              this.showErrorModal = true;
             }
+
 
             this.$nextTick(() => {
               if (this.activeView === 'dashboard') {

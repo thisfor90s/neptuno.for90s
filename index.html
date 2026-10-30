@@ -1861,21 +1861,170 @@
           
           <div class="flex items-center gap-2">
             <span class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Periodo:</span>
-            <select v-model="dashboardFilter" class="p-1 border border-gray-300 rounded-md text-[10px] bg-white outline-none font-bold text-tema-1 shadow-sm">
+            <select v-model="dashboardFilter" @change="dashboardOnPeriodChange" class="p-1 border border-gray-300 rounded-md text-[10px] bg-white outline-none font-bold text-tema-1 shadow-sm">
               <option value="este_mes">Este Mes</option>
               <option value="mes_pasado">Mes Pasado</option>
               <option value="ytd">Este Año a la Fecha</option>
               <option value="año_pasado">Año Pasado</option>
+              <option value="rango">Rango</option>
             </select>
           </div>
         </div>
 
-        <div v-if="isLoadingList" class="flex flex-col items-center justify-center p-20 text-gray-400">
-           <div class="loader mb-4"></div>
-           <p class="font-bold text-xs">Cargando métricas...</p>
+         <!-- DASHBOARD: SELECTOR DE RANGO -->
+        <div
+          v-if="dashboardFilter === 'rango'"
+          class="relative mb-3 flex flex-col items-end gap-1"
+        >
+
+          <button
+            type="button"
+            @click="dashboardCalendarOpen = !dashboardCalendarOpen"
+            :aria-expanded="String(dashboardCalendarOpen)"
+            aria-controls="dashboard-range-calendar"
+            class="w-full sm:w-auto flex items-center justify-between gap-3 bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs font-bold text-tema-1 shadow-sm"
+          >
+            <span class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-lg">
+                date_range
+              </span>
+              {{ dashboardAppliedStart
+                ? dashboardFormatDate(dashboardAppliedStart)
+                : 'Fecha inicial' }}
+              —
+              {{ dashboardAppliedEnd
+                ? dashboardFormatDate(dashboardAppliedEnd)
+                : 'Fecha final' }}
+            </span>
+            <span class="material-symbols-outlined">
+              {{ dashboardCalendarOpen
+                ? 'keyboard_arrow_up'
+                : 'keyboard_arrow_down' }}
+            </span>
+          </button>
+
+          <div
+            v-show="dashboardCalendarOpen"
+            id="dashboard-range-calendar"
+            class="absolute top-full right-0 mt-1 z-40 w-[280px] max-w-full bg-white rounded-xl border border-gray-200 shadow-xl p-2.5"
+          >
+            <div class="flex items-center justify-between mb-3">
+              <button
+                type="button"
+                @click="dashboardChangeMonth(-1)"
+                aria-label="Mes anterior"
+                class="p-2 rounded-lg hover:bg-gray-100"
+              >
+                <span class="material-symbols-outlined">
+                  chevron_left
+                </span>
+              </button>
+
+              <span class="text-xs font-black uppercase text-tema-1">
+                {{ dashboardCalendarLabel }}
+              </span>
+
+              <button
+                type="button"
+                @click="dashboardChangeMonth(1)"
+                aria-label="Mes siguiente"
+                class="p-2 rounded-lg hover:bg-gray-100"
+              >
+                <span class="material-symbols-outlined">
+                  chevron_right
+                </span>
+              </button>
+            </div>
+
+            <div class="grid grid-cols-7 gap-1 mb-1">
+              <span
+                v-for="dayName in ['Lu','Ma','Mi','Ju','Vi','Sá','Do']"
+                :key="dayName"
+                class="text-center text-[10px] font-black text-gray-400 py-1"
+              >
+                {{ dayName }}
+              </span>
+            </div>
+
+            <div class="grid grid-cols-7 gap-1">
+              <template v-for="(day, index) in dashboardCalendarDays">
+                <span
+                  v-if="!day"
+                  :key="'empty-' + index"
+                  class="h-7"
+                ></span>
+
+                <button
+                  v-else
+                  :key="day.value"
+                  type="button"
+                  @click="dashboardSelectDay(day.value)"
+                  :aria-label="day.value"
+                  :aria-pressed="String(day.value === dashboardRangeStart || day.value === dashboardRangeEnd)"
+                  class="h-7 rounded-md text-[10px] font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  :class="dashboardDayClass(day.value)"
+                >
+                  {{ day.day }}
+                </button>
+              </template>
+            </div>
+
+            
+            <div class="mt-2 grid grid-cols-2 gap-1.5">
+              <div class="bg-gray-50 rounded-md p-1.5">
+                <div class="text-[9px] font-black text-gray-400 uppercase">
+                  Inicio
+                </div>
+                <div class="text-xs font-bold text-tema-1">
+                  {{ dashboardFormatDate(dashboardRangeStart) }}
+                </div>
+              </div>
+
+              <div class="bg-gray-50 rounded-md p-1.5">
+                <div class="text-[9px] font-black text-gray-400 uppercase">
+                  Fin
+                </div>
+                <div class="text-xs font-bold text-tema-1">
+                  {{ dashboardFormatDate(dashboardRangeEnd) }}
+                </div>
+              </div>
+            </div>
+
+            <div class="flex justify-between items-center mt-2 pt-2 border-t border-gray-100">
+              <button
+                type="button"
+                @click="dashboardClearRange"
+                class="text-xs font-bold text-gray-500 hover:text-red-500 px-2 py-2"
+              >
+                Limpiar
+              </button>
+
+              <button
+                type="button"
+                @click="dashboardApplyRange"
+                :disabled="!dashboardRangeStart || !dashboardRangeEnd"
+                class="bg-tema-1 text-white text-[10px] font-black rounded-md px-3 py-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Aplicar rango
+              </button>
+            </div>
+          </div>
         </div>
+        
+        <!-- FIN SELECTOR DE RANGO -->
+
+        <div
+          v-if="isLoadingList"
+          class="flex flex-col items-center justify-center p-20 text-gray-400"
+        >
+          <div class="loader mb-4"></div>
+          <p class="font-bold text-xs">Cargando métricas...</p>
+        </div>
+
+
         <div v-else class="pb-10">
             <!-- BLOQUE 1: TARJETAS KPI -->
+
             <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
                 
                 <!-- INGRESOS -->
@@ -2148,12 +2297,26 @@
 
             <!-- BLOQUE 4: TABLA DE ANÁLISIS DETALLADO -->
             <div class="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col mb-4">
-                <div class="bg-tema-bg/50 border-b border-gray-200 px-4 py-3 flex flex-col sm:flex-row justify-between items-center gap-3">
+                
+                <div class="bg-tema-bg/50 border-b border-gray-200 px-4 py-3 flex flex-wrap justify-between items-center gap-3">
                     <h3 class="text-[11px] font-black text-tema-1 uppercase tracking-widest flex items-center">
-                        <span class="material-symbols-outlined text-[16px] mr-1.5">analytics</span> 
+                        <span class="material-symbols-outlined text-[16px] mr-1.5">analytics</span>
                         Análisis General Detallado
                     </h3>
-                    <div class="flex items-center gap-2 text-[10px] font-bold text-tema-3">
+
+                    <button
+                        type="button"
+                        @click="isDashboardDetailOpen = !isDashboardDetailOpen"
+                        :aria-expanded="String(isDashboardDetailOpen)"
+                        aria-controls="dashboard-detail-content"
+                        :aria-label="isDashboardDetailOpen ? 'Contraer análisis detallado' : 'Expandir análisis detallado'"
+                        class="ml-auto p-2 rounded-lg text-tema-1 hover:bg-white focus:outline-none focus:ring-2 focus:ring-tema-1 transition-colors flex items-center justify-center"
+                    >
+                        <span class="material-symbols-outlined text-[22px]">
+                            {{ isDashboardDetailOpen ? 'keyboard_arrow_up' : 'keyboard_arrow_down' }}
+                        </span>
+                    </button>
+                    <div v-show="isDashboardDetailOpen" class="flex items-center gap-2 text-[10px] font-bold text-tema-3">
                         <select v-model="dashTableFilterTipo" class="px-2 py-1 border border-gray-300 rounded bg-white outline-none focus:ring-1 focus:ring-tema-1 transition-all">
                             <option value="">Todos los Tipos</option>
                             <option value="Ingreso">Ingresos</option>
@@ -2168,7 +2331,11 @@
                     </div>
                 </div>
                 
-                <div class="overflow-x-auto">
+                <div
+                    id="dashboard-detail-content"
+                    v-show="isDashboardDetailOpen"
+                    class="overflow-x-auto"
+                >
                     <table class="w-full text-left border-collapse table-auto text-[10px]">
                         <thead class="bg-gray-50/80 text-gray-500 uppercase tracking-wider border-b border-gray-200">
                             <tr>
