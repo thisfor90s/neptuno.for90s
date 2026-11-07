@@ -45,3 +45,13 @@ async function apiPost(action, payload = {}) {
 
   return await response.json();
 }
+
+function createTransactionRequestId() {
+  if (!globalThis.crypto?.randomUUID) {
+    throw new Error(
+      'El navegador no permite generar un identificador seguro'
+    );
+  }
+
+  return 'NEPTUNO_' + crypto.randomUUID().replace(/-/g, '');
+}

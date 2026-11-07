@@ -177,10 +177,6 @@
           </button>
         </div>
 
-        <a href="#" @click.prevent="activeView = 'registrarPG'; fetchFormData()" :class="['block p-2 rounded transition border-l-4', activeView === 'registrarPG' ? 'bg-tema-bg text-tema-1 font-black border-tema-1' : 'text-gray-600 border-transparent hover:bg-tema-bg']">
-          <div class="flex items-center sidebar-link-content"><span class="material-symbols-outlined sidebar-icon text-xl" :class="isSidebarOpen ? 'mr-3' : ''">local_mall</span><span class="sidebar-text truncate">Registrar P&G</span></div>
-        </a>
-
         <a href="#" @click.prevent="activeView = 'flash'; fetchFormData()" :class="['block p-2 rounded transition border-l-4', activeView === 'flash' ? 'bg-tema-bg text-tema-1 font-black border-tema-1' : 'text-gray-600 border-transparent hover:bg-tema-bg']">
           <div class="flex items-center sidebar-link-content"><span class="material-symbols-outlined sidebar-icon text-xl" :class="isSidebarOpen ? 'mr-3' : ''">bolt</span><span class="sidebar-text truncate">Registro Flash</span></div>
         </a>
@@ -234,7 +230,6 @@
         <div class="flex items-center justify-end gap-1.5 min-w-0 text-tema-1">
           <span class="material-symbols-outlined text-xl shrink-0">
             {{ {
-              registrarPG: 'local_mall',
               flash: 'bolt',
               lista: 'format_list_bulleted',
               tesoreria: 'savings',
@@ -245,7 +240,6 @@
 
           <span class="text-base font-black truncate">
             {{ {
-              registrarPG: 'Registrar P&G',
               flash: 'Registro Flash',
               lista: 'Movimientos',
               tesoreria: 'Tesorería',
@@ -258,54 +252,12 @@
 
 
       <!-- MODAL ERROR -->
-      <div v-if="showErrorModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4 text-tema-3">
+      <div v-if="showErrorModal" class="fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-50 p-4 text-tema-3">
         <div class="bg-white p-6 rounded-xl shadow-2xl max-w-lg w-full border-t-4 border-red-500 animate-fade-in text-tema-3">
           <div class="flex items-center mb-4 text-red-500"><span class="material-symbols-outlined text-3xl mr-2">error</span><h3 class="text-xl font-bold">Error</h3></div>
           <p class="mb-4 text-sm text-tema-3">No se pudo procesar la transacción:</p>
           <div class="bg-red-50 p-3 rounded text-xs font-mono mb-6 text-red-800 break-words">{{ failedErrorMessage }}</div>
           <div class="flex justify-end"><button @click="showErrorModal = false" class="bg-tema-1 text-white font-bold py-2 px-6 rounded hover:bg-tema-5 hover:text-tema-1 transition-all">Entendido</button></div>
-        </div>
-      </div>
-
-      <!-- VISTA: REGISTRAR P&G -->
-      <div v-if="activeView === 'registrarPG'" class="animate-fade-in max-w-4xl mx-auto text-tema-3">
-        <div class="flex justify-between items-center mb-5 border-b-2 border-gray-300 pb-2 text-tema-3">
-          
-          <div class="hidden md:flex items-center text-tema-1"><span class="material-symbols-outlined text-3xl mr-3 text-tema-1">local_mall</span><h2 class="text-3xl font-black">Registrar P&G</h2></div>
-
-          <div v-if="isLoadingFormData" class="flex items-center text-gray-500 text-sm"><div class="loader-small mr-2"></div>Cargando...</div>
-
-        </div>
-        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-300">
-          <form @submit.prevent="savePG" class="space-y-6 text-tema-3">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div><label class="text-xs font-bold uppercase text-gray-400">Fecha Registro</label><input type="date" v-model="pgForm.fechaRegistro" required class="w-full px-3 py-2 border rounded border-gray-300 focus:ring-1 focus:ring-tema-1 outline-none text-sm bg-white text-tema-3"></div>
-              <div><label class="text-xs font-bold uppercase text-gray-400">Fecha Pago</label><input type="date" v-model="pgForm.fechaPago" required class="w-full px-3 py-2 border rounded border-gray-300 focus:ring-1 focus:ring-tema-1 outline-none text-sm bg-white text-tema-3"></div>
-            </div>
-            
-            <div class="p-4 bg-tema-bg rounded border border-gray-200 grid grid-cols-1 md:grid-cols-3 gap-5 text-tema-3 text-tema-3">
-              <div><label class="text-xs font-bold uppercase text-gray-400">Tipo</label><select v-model="pgForm.tipo" required class="w-full p-2 border rounded text-sm bg-white outline-none focus:ring-1 focus:ring-tema-1 text-tema-3"><option value="" disabled>Seleccione...</option><option v-for="op in tiposOptions" :value="op">{{ op }}</option></select></div>
-              <div><label class="text-xs font-bold uppercase text-gray-400">Categoría</label><select v-model="pgForm.categoria" required :disabled="!pgForm.tipo" class="w-full p-2 border rounded text-sm bg-white outline-none focus:ring-1 focus:ring-tema-1 text-tema-3 disabled:bg-gray-100 disabled:cursor-not-allowed"><option value="" disabled>Seleccione...</option><option v-for="op in categoriasOptions" :value="op">{{ op }}</option></select></div>
-              <div><label class="text-xs font-bold uppercase text-gray-400">Grupo</label><select v-model="pgForm.grupo" required :disabled="!pgForm.categoria" class="w-full p-2 border rounded text-sm bg-white outline-none focus:ring-1 focus:ring-tema-1 text-tema-3 disabled:bg-gray-100 disabled:cursor-not-allowed"><option value="" disabled>Seleccione...</option><option v-for="op in gruposOptions" :value="op">{{ op }}</option></select></div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-tema-3">
-              <div><label class="text-xs font-bold uppercase text-gray-400">Forma Pago</label><select v-model="pgForm.formaPago" required class="w-full p-2 border rounded text-sm bg-white outline-none focus:ring-1 focus:ring-tema-1 text-tema-3"><option value="" disabled>Seleccione...</option><option v-for="op in formasPagoOptionsActivas" :value="op" :key="op">{{ op }}</option></select></div>
-              <div><label class="text-xs font-bold uppercase text-gray-400">Tercero / Centro de Costo</label><select v-model="pgForm.tercero" required class="w-full p-2 border rounded text-sm bg-white outline-none focus:ring-1 focus:ring-tema-1 text-tema-3"><option value="" disabled>Seleccione...</option><option v-for="op in tercerosOptions" :value="op" :key="op">{{ op }}</option></select></div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-tema-3">
-              <div><label class="text-xs font-bold uppercase text-gray-400">Valor</label><div class="relative text-tema-3"><span class="absolute inset-y-0 left-0 pl-3 flex items-center font-bold text-gray-500 text-lg">$</span><input type="text" v-model="pgForm.valor" @blur="pgForm.valor = handleValorBlur(pgForm.valor)" @focus="pgForm.valor = cleanInput(pgForm.valor)" required class="w-full pl-8 py-2 border rounded text-2xl font-black text-tema-1 outline-none focus:ring-1 focus:ring-tema-1 text-tema-3"></div></div>
-              <div><label class="text-xs font-bold uppercase text-gray-400">Descripción</label><input type="text" v-model="pgForm.descripcion" required class="w-full p-2 border rounded text-sm outline-none focus:ring-1 focus:ring-tema-1 text-tema-3 text-tema-3" placeholder="Detalle del movimiento"></div>
-            </div>
-            
-            <div class="flex justify-end pt-4 border-t border-gray-300 text-tema-3">
-              <button type="submit" :disabled="!isPGFormValid || isSavingPG || isSaveSuccess" :class="isSaveSuccess ? 'bg-tema-4' : 'bg-tema-1'" class="text-white font-bold py-2.5 px-10 rounded flex items-center shadow-md transition-all text-sm uppercase tracking-widest hover:scale-[1.02] active:scale-95 text-tema-bg">
-                <span v-if="!isSavingPG && !isSaveSuccess">Guardar Registro</span><span v-else-if="isSavingPG">Enviando...</span><span v-else-if="isSaveSuccess">¡Guardado!</span>
-                <div v-if="isSavingPG" class="loader-small loader-white ml-2"></div>
-              </button>
-            </div>
-          </form>
         </div>
       </div>
 
@@ -1005,7 +957,7 @@
                 aria-label="Limpiar filtros"
                 class="p-2 text-tema-1 rounded-lg hover:bg-gray-100"
               >
-                <span class="material-symbols-outlined">refresh</span>
+                <span class="material-symbols-outlined">cleaning_services</span>
               </button>
             </div>
           </div>
@@ -1243,15 +1195,38 @@
                     #{{ t.idx || t.id }}
                   </p>
                 </div>
+                <div class="flex items-center justify-end gap-1 shrink-0">
+                  <button
+                    type="button"
+                    @click="openEditarPGModal(t)"
+                    :aria-label="'Editar movimiento ' + (t.idx || t.id)"
+                    title="Editar movimiento"
+                    class="inline-flex items-center justify-center w-8 h-8 text-tema-1 hover:opacity-70 shrink-0"
+                  >
+                    <span class="material-symbols-outlined text-[19px]">
+                      edit
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    @click="deleteTransaction(t)"
+                    :disabled="!!deletingTransactionIds[String(t.idx || t.id)]"
+                    :aria-label="'Eliminar movimiento ' + (t.idx || t.id)"
+                    title="Eliminar movimiento"
+                    class="inline-flex items-center justify-center w-8 h-8 text-red-400 hover:text-red-600 shrink-0 disabled:opacity-60"
+                  >
+                    <span
+                      v-if="deletingTransactionIds[String(t.idx || t.id)]"
+                      class="inline-block w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin"
+                      aria-hidden="true"
+                    ></span>
 
-                <button
-                  type="button"
-                  @click="deleteTransaction(t)"
-                  :aria-label="'Eliminar movimiento ' + (t.idx || t.id)"
-                  class="p-2 text-red-400 hover:text-red-600 shrink-0"
-                >
-                  <span class="material-symbols-outlined">delete</span>
-                </button>
+                    <span
+                      v-else
+                      class="material-symbols-outlined text-[19px]"
+                    >delete</span>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -1274,7 +1249,7 @@
                   <th class="p-2">Medio / Tercero</th>
                   <th class="p-2 text-right">Valor</th>
                   <th class="p-2">Descripción</th>
-                  <th class="p-2 text-center">X</th>
+                  <th class="p-2 text-center">Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -1306,15 +1281,37 @@
                   <td class="p-2 max-w-[200px] truncate" :title="t.descripcion">
                     {{ t.descripcion }}
                   </td>
-                  <td class="p-2 text-center">
+                  <td class="p-2 text-center whitespace-nowrap">
                     <button
                       type="button"
                       @click="deleteTransaction(t)"
-                      class="text-red-400 hover:text-red-600"
+                      :disabled="!!deletingTransactionIds[String(t.idx || t.id)]"
+                      class="inline-flex items-center justify-center w-8 h-8 text-red-400 hover:text-red-600 disabled:opacity-60"
                       :aria-label="'Eliminar movimiento ' + (t.idx || t.id)"
                     >
-                      <span class="material-symbols-outlined text-lg">cancel</span>
+                      <span
+                        v-if="deletingTransactionIds[String(t.idx || t.id)]"
+                        class="inline-block w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin"
+                        aria-hidden="true"
+                      ></span>
+
+                      <span
+                        v-else
+                        class="material-symbols-outlined text-lg"
+                      >delete</span>
                     </button>
+
+                    
+                    <button
+                      type="button"
+                      @click="openEditarPGModal(t)"
+                      class="inline-flex items-center justify-center w-8 h-8 text-tema-1 hover:opacity-70"
+                      :aria-label="'Editar movimiento ' + (t.idx || t.id)"
+                      title="Editar movimiento"
+                    >
+                      <span class="material-symbols-outlined text-lg">edit</span>
+                    </button>
+
                   </td>
                 </tr>
                 <tr v-if="!isLoadingList && !dbListaFiltrada.length">
@@ -2953,6 +2950,138 @@
       </div>
 
     </main>
+
+    
+    <!-- ==========================================
+        FAB GLOBAL / REGISTRAR P&G
+    ========================================== -->
+    <button
+      type="button"
+      v-if="isAuthenticated && !showRegistrarPGModal"
+      @click="openRegistrarPGModal"
+      aria-label="Abrir Registrar P&G"
+      title="Registrar P&G"
+      class="fixed right-4 md:right-6 z-40 w-14 h-14 rounded-full bg-tema-1 text-white shadow-xl flex items-center justify-center border-2 border-tema-2 hover:bg-tema-4 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-tema-2"
+      :style="{
+        bottom: isDesktopView
+          ? '56px'
+          : activeView === 'lista'
+            ? 'calc(104px + env(safe-area-inset-bottom, 0px))'
+            : 'calc(24px + env(safe-area-inset-bottom, 0px))'
+      }"
+    >
+      <span class="material-symbols-outlined text-[30px]">
+        add
+      </span>
+    </button>
+    <!-- FIN FAB -->
+
+    
+    <!-- ==========================================
+        REGISTRAR P&G / MODAL GLOBAL
+    ========================================== -->
+    <div
+      v-if="showRegistrarPGModal"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 md:p-5"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="registrar-pg-modal-title"
+    >
+      <div
+        class="w-full h-full md:h-auto md:max-h-[90dvh] md:max-w-[520px] bg-white md:rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+      >
+
+        <!-- CABECERA -->
+        <div class="shrink-0 flex items-center justify-between gap-3 px-4 py-3 border-b border-gray-200 bg-white">
+
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="material-symbols-outlined text-tema-1 text-[22px]">
+              local_mall
+            </span>
+
+            <h2
+              id="registrar-pg-modal-title"
+              class="text-base font-black text-tema-1"
+            >
+              {{ editingPGId !== null ? 'Actualizar' : 'Guardar' }}
+            </h2>
+          </div>
+
+          <button
+            type="button"
+            @click="closeRegistrarPGModal"
+            :disabled="isSavingPG"
+            aria-label="Cerrar Registrar P&G"
+            class="w-10 h-10 shrink-0 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 disabled:opacity-40"
+          >
+            <span class="material-symbols-outlined text-[23px]">
+              close
+            </span>
+          </button>
+        </div>
+
+        <!-- CONTENIDO DESPLAZABLE -->
+        <div class="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 md:p-5">
+
+          <div
+            v-if="isLoadingFormData"
+            class="flex items-center justify-center gap-2 py-12 text-gray-500 text-sm"
+          >
+            <div class="loader-small"></div>
+            Actualizando datos...
+          </div>
+
+          <div v-else>
+
+            <form @submit.prevent="submitPGForm" class="space-y-4 text-tema-3">
+              <div class="grid grid-cols-2 gap-2">
+                <div><label class="text-xs font-bold uppercase text-gray-400">Fecha Registro</label><input type="date" v-model="pgForm.fechaRegistro" required class="w-full px-3 py-2 border rounded border-gray-300 focus:ring-1 focus:ring-tema-1 outline-none text-sm bg-white text-tema-3"></div>
+                <div><label class="text-xs font-bold uppercase text-gray-400">Fecha Pago</label><input type="date" v-model="pgForm.fechaPago" required class="w-full px-3 py-2 border rounded border-gray-300 focus:ring-1 focus:ring-tema-1 outline-none text-sm bg-white text-tema-3"></div>
+              </div>
+
+              
+              <div class="p-3 bg-tema-bg rounded-lg border border-gray-200 grid grid-cols-1 sm:grid-cols-2 gap-2 text-tema-3">
+                <div><label class="text-xs font-bold uppercase text-gray-400">Tipo</label><select v-model="pgForm.tipo" required class="w-full p-2 border rounded text-sm bg-white outline-none focus:ring-1 focus:ring-tema-1 text-tema-3"><option value="" disabled>Seleccione...</option><option v-for="op in tiposOptions" :value="op">{{ op }}</option></select></div>
+                <div><label class="text-xs font-bold uppercase text-gray-400">Categoría</label><select v-model="pgForm.categoria" required :disabled="!pgForm.tipo" class="w-full p-2 border rounded text-sm bg-white outline-none focus:ring-1 focus:ring-tema-1 text-tema-3 disabled:bg-gray-100 disabled:cursor-not-allowed"><option value="" disabled>Seleccione...</option><option v-for="op in categoriasOptions" :value="op">{{ op }}</option></select></div>
+                <div><label class="text-xs font-bold uppercase text-gray-400">Grupo</label><select v-model="pgForm.grupo" required :disabled="!pgForm.categoria" class="w-full p-2 border rounded text-sm bg-white outline-none focus:ring-1 focus:ring-tema-1 text-tema-3 disabled:bg-gray-100 disabled:cursor-not-allowed"><option value="" disabled>Seleccione...</option><option v-for="op in gruposOptions" :value="op">{{ op }}</option></select></div>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-tema-3">
+                <div><label class="text-xs font-bold uppercase text-gray-400">Forma Pago</label><select v-model="pgForm.formaPago" required class="w-full p-2 border rounded text-sm bg-white outline-none focus:ring-1 focus:ring-tema-1 text-tema-3"><option value="" disabled>Seleccione...</option><option v-for="op in formasPagoOptionsActivas" :value="op" :key="op">{{ op }}</option></select></div>
+                <div><label class="text-xs font-bold uppercase text-gray-400">Tercero / Centro de Costo</label><select v-model="pgForm.tercero" required class="w-full p-2 border rounded text-sm bg-white outline-none focus:ring-1 focus:ring-tema-1 text-tema-3"><option value="" disabled>Seleccione...</option><option v-for="op in tercerosOptions" :value="op" :key="op">{{ op }}</option></select></div>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-tema-3">
+                <div><label class="text-xs font-bold uppercase text-gray-400">Valor</label><div class="relative text-tema-3"><span class="absolute inset-y-0 left-0 pl-3 flex items-center font-bold text-gray-500 text-lg">$</span><input type="text" v-model="pgForm.valor" @blur="pgForm.valor = handleValorBlur(pgForm.valor)" @focus="pgForm.valor = cleanInput(pgForm.valor)" required class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded text-sm font-black text-tema-1 outline-none focus:ring-1 focus:ring-tema-1 bg-white"></div></div>
+                <div><label class="text-xs font-bold uppercase text-gray-400">Descripción</label><input type="text" v-model="pgForm.descripcion" required class="w-full p-2 border rounded text-sm outline-none focus:ring-1 focus:ring-tema-1 text-tema-3 text-tema-3" placeholder="Detalle del movimiento"></div>
+              </div>
+
+              <div class="flex justify-end pt-4 border-t border-gray-300 text-tema-3">
+                <button type="submit" :disabled="!isPGFormValid || isSavingPG || isSaveSuccess" :class="isSaveSuccess ? 'bg-tema-4' : 'bg-tema-1'" class="text-white font-bold py-2.5 px-10 rounded flex items-center shadow-md transition-all text-sm uppercase tracking-widest hover:scale-[1.02] active:scale-95 text-tema-bg">
+                <span v-if="!isSavingPG && !isSaveSuccess">
+                  {{ editingPGId !== null ? 'Actualizar' : 'Guardar' }}
+                </span>
+
+                <span v-else-if="isSavingPG">
+                  {{ editingPGId !== null ? 'Actualizando...' : 'Enviando...' }}
+                </span>
+
+                <span v-else-if="isSaveSuccess">
+                  {{ editingPGId !== null ? '¡Actualizado!' : '¡Guardado!' }}
+                </span>
+                <div v-if="isSavingPG" class="loader-small loader-white ml-2"></div>
+                </button>
+              </div>
+            </form>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <!-- FIN MODAL REGISTRAR P&G -->
+
+
   </div>
 </div>
 

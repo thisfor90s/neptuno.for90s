@@ -1,9 +1,9 @@
 // =====================================================
 // CONFIGURACIÓN GLOBAL DE VISTA INICIAL
 // Cambia aquí a 'dashboard' si quieres volver al dashboard.
-// Opciones: 'proyeccion', 'dashboard', 'tesoreria', 'lista', 'registrarPG', 'flash'
+// Opciones: 'proyeccion', 'dashboard', 'tesoreria', 'lista', 'flash'
 // =====================================================
-const DEFAULT_ACTIVE_VIEW = 'proyeccion';
+const DEFAULT_ACTIVE_VIEW = 'lista';
 
 Vue.directive('click-outside', {
   bind(el, binding, vnode) {
@@ -54,9 +54,18 @@ new Vue({
     isDesktopView: true,
     activeView: DEFAULT_ACTIVE_VIEW,
 
+    
     isLoadingFormData: false,
     isSavingPG: false,
     isSaveSuccess: false,
+    
+    showRegistrarPGModal: false,
+    pendingPGRequest: null,
+
+    editingPGId: null,
+    editingPGOriginal: null,
+    isPrefillingPG: false,
+
 
     showErrorModal: false,
     failedTransaction: null,
@@ -80,6 +89,7 @@ new Vue({
     dbFlash: [],
     flashSearchQuery: '',
     dbLista: [],
+    deletingTransactionIds: {},
 
     isLoadingList: false,
     isSyncingBackground: false,
@@ -136,6 +146,7 @@ new Vue({
 
     saldosReales: {},
     isSavingAjuste: {},
+    pendingAjustes: {},
 
     // =====================================================
     // PROYECCIÓN / ESTADO BASE
@@ -1717,7 +1728,10 @@ new Vue({
   },
 
   watch: {
+    
     'pgForm.tipo': function(nv, ov) {
+      if (this.isPrefillingPG) return;
+
       if (nv !== ov) {
         this.pgForm.categoria = '';
         this.pgForm.grupo = '';
@@ -1725,14 +1739,22 @@ new Vue({
     },
 
     'pgForm.categoria': function(nv, ov) {
+      if (this.isPrefillingPG) return;
+
       if (nv !== ov) {
         this.pgForm.grupo = '';
       }
     },
 
     'pgForm.fechaRegistro': function(nv) {
+      if (this.isPrefillingPG) return;
+
+      // En edición, las fechas son independientes.
+      if (this.editingPGId !== null) return;
+
       this.pgForm.fechaPago = nv;
     },
+
 
     activeView: function(nv) {
       if (this.isAuthenticated) {
@@ -2159,54 +2181,125 @@ new Vue({
       return this.parseToNumber(real) - medio.saldo;
     },
 
+    
     async ejecutarCuadre(medio, event) {
+
       event.target.checked = false;
 
-      const diff = this.getDiff(medio);
-      if (diff === 0) return;
+      const nombre = medio.nombre;
 
-      this.$set(this.isSavingAjuste, medio.nombre, true);
+      // Evitar ejecuciones simultaneas
+      // sobre el mismo medio.
+      if (this.isSavingAjuste[nombre]) return;
+
+      const pendiente = this.pendingAjustes[nombre];
+
+      // Solo calcular una diferencia nueva cuando
+      // no existe una solicitud pendiente.
+      const diff = pendiente ? null : this.getDiff(medio);
+
+      if (!pendiente && diff === 0) return;
+
+      this.$set(this.isSavingAjuste, nombre, true);
 
       try {
-        const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
-        const fp = this.dbFormasPago.find(f => f.medio === medio.nombre) || { clase: '', tipo_fuente: '' };
 
-        const tipo = 'Gasto';
-        const val = diff > 0 ? -Math.abs(diff) : Math.abs(diff);
+        let solicitud = pendiente;
 
-        const record = {
-          fecha_registro: today,
-          fecha_pago: today,
-          tipo: tipo,
-          grupo: 'Varios',
-          categoria: 'Ajuste',
-          medio: medio.nombre,
-          clase: fp.clase,
-          tipo_fuente: fp.tipo_fuente,
-          tercero: 'Luis',
-          valor: val,
-          descripcion: 'Ajuste',
-          estado: 'h'
-        };
+        if (!solicitud) {
 
-        const response = await apiPost('saveTransaction', { record });
+          const today = new Date().toLocaleDateString(
+            'en-CA',
+            { timeZone: 'America/Bogota' }
+          );
+
+          const fp = this.dbFormasPago.find(
+            f => f.medio === nombre
+          ) || {
+            clase: '',
+            tipo_fuente: ''
+          };
+
+          // Conservar exactamente el calculo original.
+          const tipo = 'Gasto';
+          const val = diff > 0
+            ? -Math.abs(diff)
+            : Math.abs(diff);
+
+          const record = {
+            fecha_registro: today,
+            fecha_pago: today,
+            tipo: tipo,
+            grupo: 'Varios',
+            categoria: 'Ajuste',
+            medio: nombre,
+            clase: fp.clase,
+            tipo_fuente: fp.tipo_fuente,
+            tercero: 'Luis',
+            valor: val,
+            descripcion: 'Ajuste',
+            estado: 'h'
+          };
+
+          solicitud = {
+            requestId: createTransactionRequestId(),
+            record: { ...record }
+          };
+
+          // Guardar antes de enviar la solicitud.
+          this.$set(
+            this.pendingAjustes,
+            nombre,
+            solicitud
+          );
+        }
+
+        const response = await apiPost(
+          'saveTransaction',
+          {
+            requestId: solicitud.requestId,
+            record: solicitud.record
+          }
+        );
 
         if (!response.success) {
-          this.failedErrorMessage = response.message || 'No se pudo guardar el ajuste';
+          this.failedErrorMessage =
+            response.message ||
+            'No se pudo guardar el ajuste';
+
           this.showErrorModal = true;
           return;
         }
 
-        this.$set(this.saldosReales, medio.nombre, '');
+        // El backend confirmo el movimiento.
+        // Liberar la solicitud antes de refrescar.
+        this.$delete(this.pendingAjustes, nombre);
+
+        this.$set(this.saldosReales, nombre, '');
+
         await this.fetchListData(true);
+
       } catch (error) {
-        this.failedErrorMessage = 'Error de conexión guardando ajuste';
+
+        // Conservar la solicitud para recuperarla
+        // con el mismo requestId.
+        this.failedErrorMessage =
+          'Error de conexión guardando ajuste. ' +
+          'La solicitud queda pendiente de verificación.';
+
         this.showErrorModal = true;
         console.error(error);
+
       } finally {
-        this.$set(this.isSavingAjuste, medio.nombre, false);
+
+        this.$set(
+          this.isSavingAjuste,
+          nombre,
+          false
+        );
       }
     },
+
 
     renderCharts() {
       const canvasPyg = document.getElementById('chartPyg');
@@ -2607,9 +2700,11 @@ new Vue({
         return;
       }
 
-      if (view === 'registrarPG' || view === 'flash') {
+      
+      if (view === 'flash') {
         await this.fetchFormData();
       }
+
     },
 
     async verifyInitialUser() {
@@ -2699,6 +2794,121 @@ new Vue({
       this.loginForm.password = '';
     },
 
+    
+    // ==========================================
+    // REGISTRAR P&G / MODAL GLOBAL
+    // ==========================================
+
+    
+  async openRegistrarPGModal() {
+    if (this.showRegistrarPGModal) return;
+
+    if (this.pendingPGRequest) {
+      this.failedErrorMessage =
+        'Existe un registro pendiente de confirmación. ' +
+        'Resuelve primero ese guardado.';
+      this.showErrorModal = true;
+      return;
+    }
+
+    this.editingPGId = null;
+    this.editingPGOriginal = null;
+    this.isSaveSuccess = false;
+
+    this.showSidebar = false;
+    this.showRegistrarPGModal = true;
+
+    await this.fetchFormData();
+  },
+
+  closeRegistrarPGModal() {
+    if (this.isSavingPG) return;
+
+    this.showRegistrarPGModal = false;
+    this.editingPGId = null;
+    this.editingPGOriginal = null;
+    this.isSaveSuccess = false;
+  },
+
+  async openEditarPGModal(transaction) {
+    if (this.isSavingPG || this.showRegistrarPGModal) return;
+
+    if (this.pendingPGRequest) {
+      this.failedErrorMessage =
+        'Existe un guardado pendiente de confirmación. ' +
+        'Resuélvelo antes de editar.';
+      this.showErrorModal = true;
+      return;
+    }
+
+    const id = String(
+      transaction.idx || transaction.id || ''
+    ).trim();
+
+    if (!/^[1-9]\d*$/.test(id)) return;
+
+    // Conservar los nueve campos originales.
+    const campos = [
+      'fecha_registro',
+      'fecha_pago',
+      'tipo',
+      'grupo',
+      'categoria',
+      'medio',
+      'tercero',
+      'valor',
+      'descripcion'
+    ];
+
+    const original = {};
+
+    campos.forEach(campo => {
+      original[campo] = transaction[campo] ?? '';
+    });
+
+    // Cargar los catálogos antes de precargar.
+    await this.fetchFormData();
+
+    this.isPrefillingPG = true;
+
+    try {
+      this.editingPGId = id;
+      this.editingPGOriginal = original;
+      this.isSaveSuccess = false;
+
+      this.pgForm = {
+        fechaRegistro: original.fecha_registro,
+        fechaPago: original.fecha_pago,
+        tipo: original.tipo,
+        grupo: original.grupo,
+        categoria: original.categoria,
+        formaPago: original.medio,
+        tercero: original.tercero,
+        valor: this.formatInput(original.valor),
+        descripcion: original.descripcion
+      };
+
+      await this.$nextTick();
+
+      this.showSidebar = false;
+      this.showRegistrarPGModal = true;
+
+    } finally {
+      this.isPrefillingPG = false;
+    }
+  },
+
+  async submitPGForm() {
+    if (this.editingPGId !== null) {
+      return this.updatePG();
+    }
+
+    return this.savePG();
+  },
+
+
+
+
     async fetchFormData() {
       this.isLoadingFormData = true;
 
@@ -2750,13 +2960,42 @@ new Vue({
           
         };
 
-        const response = await apiPost('saveTransaction', { record });
+        const recordSignature = JSON.stringify(record);
+
+        if (
+          this.pendingPGRequest &&
+          this.pendingPGRequest.signature !== recordSignature
+        ) {
+          this.failedErrorMessage =
+            'Existe un registro pendiente de confirmación. ' +
+            'No modifiques sus datos hasta resolver el resultado anterior.';
+          this.showErrorModal = true;
+          return;
+        }
+
+        if (!this.pendingPGRequest) {
+          this.pendingPGRequest = {
+            requestId: createTransactionRequestId(),
+            signature: recordSignature,
+            record: { ...record }
+          };
+        }
+
+        const response = await apiPost(
+          'saveTransaction',
+          {
+            requestId: this.pendingPGRequest.requestId,
+            record: this.pendingPGRequest.record
+          }
+        );
 
         if (!response.success) {
           this.failedErrorMessage = response.message || 'No se pudo guardar';
           this.showErrorModal = true;
           return;
         }
+
+        this.pendingPGRequest = null;
 
         this.isSaveSuccess = true;
         this.pgForm.valor = '';
@@ -2775,13 +3014,170 @@ new Vue({
       }
     },
 
+    
+    async updatePG() {
+
+      if (this.isSavingPG) return;
+      if (this.editingPGId === null) return;
+      if (!this.editingPGOriginal) return;
+
+      const id = this.editingPGId;
+      const original = this.editingPGOriginal;
+
+      const actual = {
+        fecha_registro: this.pgForm.fechaRegistro,
+        fecha_pago: this.pgForm.fechaPago,
+        tipo: this.pgForm.tipo,
+        grupo: this.pgForm.grupo,
+        categoria: this.pgForm.categoria,
+        medio: this.pgForm.formaPago,
+        tercero: this.pgForm.tercero,
+        valor: this.parseToNumber(this.pgForm.valor),
+        descripcion: this.pgForm.descripcion
+      };
+
+      const patch = {};
+
+      Object.keys(actual).forEach(campo => {
+        const anterior = campo === 'valor'
+          ? Number(original[campo])
+          : String(original[campo] ?? '');
+
+        const nuevo = campo === 'valor'
+          ? Number(actual[campo])
+          : String(actual[campo] ?? '');
+
+        if (anterior !== nuevo) {
+          patch[campo] = actual[campo];
+        }
+      });
+
+      if (!Object.keys(patch).length) {
+        this.failedErrorMessage =
+          'No hay cambios para actualizar.';
+        this.showErrorModal = true;
+        return;
+      }
+
+      this.isSavingPG = true;
+
+      try {
+
+        const response = await apiPost(
+          'updateTransaction',
+          {
+            id: id,
+            record: patch,
+            expected: { ...original },
+            dryRun: false
+          }
+        );
+
+        if (
+          !response.success ||
+          response.data?.updated !== true ||
+          response.data?.verified !== true
+        ) {
+          this.failedErrorMessage =
+            response.message ||
+            'No se pudo verificar la actualización';
+
+          this.showErrorModal = true;
+
+          if (response.data?.writeAttempted === true) {
+            await this.fetchListData(true);
+          }
+
+          return;
+        }
+
+        
+        // El backend confirmó la actualización.
+        this.editingPGOriginal = { ...actual };
+
+        // Sincronizar movimientos.
+        await this.fetchListData(true);
+
+        // Cerrar únicamente el modal de edición.
+        this.showRegistrarPGModal = false;
+        this.editingPGId = null;
+        this.editingPGOriginal = null;
+        this.isSaveSuccess = false;
+
+
+      } catch (error) {
+
+        console.error(error);
+
+        this.failedErrorMessage =
+          'No se pudo confirmar la actualización. ' +
+          'Consulta el movimiento antes de reintentar.';
+
+        this.showErrorModal = true;
+
+        try {
+          await this.fetchListData(true);
+        } catch (refreshError) {
+          console.error(refreshError);
+        }
+
+      } finally {
+        this.isSavingPG = false;
+      }
+    },
+
+    
     async saveFlashPG(item) {
+
+      // Evitar dos envios simultaneos del mismo Flash.
+      if (item.isSaving) return;
+
       item.isSaving = true;
 
       try {
-        const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
-        const fp = this.dbFormasPago.find(f => f.medio === item.medio) || { clase: '', tipo_fuente: '' };
-        const valorLimpio = this.parseToNumber(item.valor);
+        // Si existe una solicitud pendiente, recuperar
+        // exactamente el mismo movimiento.
+        if (item.pendingFlashRequest) {
+          const pendiente = item.pendingFlashRequest;
+
+          const response = await apiPost(
+            'saveTransaction',
+            {
+              requestId: pendiente.requestId,
+              record: pendiente.record
+            }
+          );
+
+          if (!response.success) {
+            this.failedErrorMessage =
+              response.message ||
+              'No se pudo recuperar el registro Flash';
+            this.showErrorModal = true;
+            return;
+          }
+
+          item.pendingFlashRequest = null;
+          item.valor = '';
+          item.checked = false;
+          return;
+        }
+
+        // Construccion original del movimiento.
+        const today = new Date().toLocaleDateString(
+          'en-CA',
+          { timeZone: 'America/Bogota' }
+        );
+
+        const fp = this.dbFormasPago.find(
+          f => f.medio === item.medio
+        ) || {
+          clase: '',
+          tipo_fuente: ''
+        };
+
+        const valorLimpio = this.parseToNumber(
+          item.valor
+        );
 
         const record = {
           fecha_registro: today,
@@ -2792,35 +3188,55 @@ new Vue({
           medio: item.medio,
           clase: fp.clase,
           tipo_fuente: fp.tipo_fuente,
-
           genera_pasivo: fp.genera_pasivo || 'n',
           tercero_fuente: fp.tercero_fuente || '',
-
           tercero: item.tercero,
           valor: valorLimpio,
           descripcion: item.descripcion,
           estado: 'h'
-          
         };
 
-        const response = await apiPost('saveTransaction', { record });
+        // Una clave unica por operacion.
+        // Conservar tambien los datos originales.
+        item.pendingFlashRequest = {
+          requestId: createTransactionRequestId(),
+          record: { ...record }
+        };
+
+        const response = await apiPost(
+          'saveTransaction',
+          {
+            requestId: item.pendingFlashRequest.requestId,
+            record: item.pendingFlashRequest.record
+          }
+        );
 
         if (!response.success) {
-          this.failedErrorMessage = response.message || 'No se pudo guardar el registro flash';
+          this.failedErrorMessage =
+            response.message ||
+            'No se pudo guardar el registro Flash';
           this.showErrorModal = true;
           return;
         }
 
+        // Solo liberar la solicitud cuando el
+        // backend confirma el resultado.
+        item.pendingFlashRequest = null;
+
         item.valor = '';
         item.checked = false;
+
       } catch (error) {
-        this.failedErrorMessage = 'Error de conexión guardando el registro flash';
+        this.failedErrorMessage =
+          'Error de conexión guardando el registro Flash';
         this.showErrorModal = true;
         console.error(error);
+
       } finally {
         item.isSaving = false;
       }
     },
+
 
     
     async fetchListData(silent = false) {
@@ -2877,31 +3293,92 @@ new Vue({
       }
     },
 
+    
     async deleteTransaction(transaction) {
-      const transactionId = transaction.idx || transaction.id;
-      const index = this.dbLista.findIndex(t => (t.idx || t.id) == transactionId);
 
-      if (index === -1) return;
+      const transactionId = String(
+        transaction.idx || transaction.id || ''
+      ).trim();
 
-      const backup = this.dbLista.splice(index, 1)[0];
+      if (!transactionId) return;
+
+      // Evitar doble eliminacion simultanea.
+      if (this.deletingTransactionIds[transactionId]) {
+        return;
+      }
+
+      this.$set(
+        this.deletingTransactionIds,
+        transactionId,
+        true
+      );
 
       try {
-        const response = await apiPost('softDeleteTransaction', {
-          id: transactionId
-        });
 
-        if (!response.success) {
-          this.dbLista.splice(index, 0, backup);
-          this.failedErrorMessage = response.message || 'No se pudo eliminar';
+        const response = await apiPost(
+          'softDeleteTransaction',
+          { id: transactionId }
+        );
+
+        // V2 debe confirmar la eliminacion
+        // y la verificacion posterior.
+        if (
+          !response.success ||
+          response.data?.deleted !== true ||
+          response.data?.verified !== true
+        ) {
+          this.failedErrorMessage =
+            response.message ||
+            'La eliminacion no fue confirmada';
+
           this.showErrorModal = true;
+
+          // Si hubo intento de escritura, consultar
+          // nuevamente antes de cualquier reintento.
+          if (response.data?.writeAttempted === true) {
+            await this.fetchListData(true);
+          }
+
+          return;
         }
+
+        // El backend confirmo estado = n.
+        // Retirar el registro de la vista actual.
+        this.dbLista = this.dbLista.filter(
+          item => String(item.idx || item.id) !==
+            transactionId
+        );
+
+        // Sincronizar con la BD.
+        await this.fetchListData(true);
+
       } catch (error) {
-        this.dbLista.splice(index, 0, backup);
-        this.failedErrorMessage = 'Error de conexión eliminando transacción';
-        this.showErrorModal = true;
+
         console.error(error);
+
+        // La respuesta pudo perderse despues
+        // de que el backend realizara la escritura.
+        this.failedErrorMessage =
+          'No se pudo confirmar la eliminacion. ' +
+          'Se consultaran nuevamente los movimientos.';
+
+        this.showErrorModal = true;
+
+        try {
+          await this.fetchListData(true);
+        } catch (refreshError) {
+          console.error(refreshError);
+        }
+
+      } finally {
+
+        this.$delete(
+          this.deletingTransactionIds,
+          transactionId
+        );
       }
     },
+
 
     startInactivityTimer() {
       this.clearInactivityTimer();
