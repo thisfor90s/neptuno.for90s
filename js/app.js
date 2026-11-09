@@ -3,9 +3,37 @@
 // Cambia aquí a 'dashboard' si quieres volver al dashboard.
 // Opciones: 'proyeccion', 'dashboard', 'tesoreria', 'lista', 'flash'
 // =====================================================
+
 const DEFAULT_ACTIVE_VIEW = 'lista';
 
+// NEPTUNO FZ - PERSISTENCIA DE VISTA ACTIVA
+const ACTIVE_VIEW_STORAGE_KEY = 'neptuno_fz_active_view';
+
+const VALID_ACTIVE_VIEWS = [
+  'lista',
+  'flash',
+  'tesoreria',
+  'dashboard',
+  'proyeccion'
+];
+
+function getStoredActiveView() {
+  try {
+    const savedView = localStorage.getItem(
+      ACTIVE_VIEW_STORAGE_KEY
+    );
+
+    return VALID_ACTIVE_VIEWS.includes(savedView)
+      ? savedView
+      : DEFAULT_ACTIVE_VIEW;
+
+  } catch (error) {
+    return DEFAULT_ACTIVE_VIEW;
+  }
+}
+
 Vue.directive('click-outside', {
+
   bind(el, binding, vnode) {
     el.__clickOutsideHandler__ = function(event) {
       if (el === event.target || el.contains(event.target)) {
@@ -49,10 +77,12 @@ new Vue({
     isLoggingIn: false,
     loginError: '',
 
+    
     isSidebarOpen: false,
     showSidebar: false,
     isDesktopView: true,
-    activeView: DEFAULT_ACTIVE_VIEW,
+    activeView: getStoredActiveView(),
+
 
     
     isLoadingFormData: false,
@@ -1756,15 +1786,35 @@ new Vue({
     },
 
 
+    
     activeView: function(nv) {
+
       if (this.isAuthenticated) {
         this.resetInactivityTimer();
+
+        // Guardar solamente vistas autorizadas.
+        if (VALID_ACTIVE_VIEWS.includes(nv)) {
+          try {
+            localStorage.setItem(
+              ACTIVE_VIEW_STORAGE_KEY,
+              nv
+            );
+          } catch (error) {
+            console.warn(
+              'No se pudo guardar la vista activa',
+              error
+            );
+          }
+        }
       }
 
       if (nv === 'dashboard') {
-        this.$nextTick(() => { this.renderCharts(); });
+        this.$nextTick(() => {
+          this.renderCharts();
+        });
       }
     },
+
 
     dbLista: {
       handler: function() {
