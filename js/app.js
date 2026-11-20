@@ -1067,6 +1067,44 @@ new Vue({
       return this.totalIngresos - this.totalGastos;
     },
 
+    movimientosCashFlow() {
+      const fuentesPermitidas = new Set([
+        'aplicacion',
+        'efectivo',
+        'tarjeta debito'
+      ]);
+
+      const normalizarFuente = valor =>
+        String(valor || '')
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .trim()
+          .replace(/\s+/g, ' ')
+          .toLowerCase();
+
+      return this.dbListaFiltrada.reduce((total, movimiento) => {
+        const fuente = normalizarFuente(movimiento.tipo_fuente);
+
+        if (!fuentesPermitidas.has(fuente)) {
+          return total;
+        }
+
+        const valor = Number(movimiento.valor) || 0;
+
+        switch (movimiento.tipo) {
+          case 'Ingreso':
+          case 'Pasivo':
+            return total + valor;
+
+          case 'Gasto':
+          case 'Activo':
+            return total - valor;
+
+          default:
+            return total;
+        }
+      }, 0);
+    },
 
 
 
