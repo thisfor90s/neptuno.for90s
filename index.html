@@ -282,8 +282,32 @@
               autocomplete="off"
               aria-label="Buscar registro rápido"
               placeholder="Buscar registro rápido..."
-              class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg bg-white text-sm text-tema-3 outline-none focus:ring-2 focus:ring-tema-2"
+              class="w-full pl-10 pr-11 py-2.5 border border-gray-200 rounded-lg bg-white text-sm text-tema-3 outline-none focus:ring-2 focus:ring-tema-2"
             >
+
+            <details class="absolute right-2 top-1/2 -translate-y-1/2 group z-20">
+              <summary
+                class="list-none cursor-pointer flex items-center justify-center w-7 h-7 rounded-full text-gray-400 hover:text-tema-1 hover:bg-gray-100"
+                title="Ayuda de búsqueda"
+                aria-label="Mostrar ayuda de búsqueda"
+              >
+                <span class="material-symbols-outlined text-[19px]">
+                  help
+                </span>
+              </summary>
+
+              <div class="absolute right-0 top-full mt-2 w-56 bg-white border border-gray-200 rounded-xl shadow-xl p-3 text-xs text-gray-600 z-50">
+                <p class="font-black text-tema-1 mb-2">Cómo buscar</p>
+                <p class="mb-1"><b>pan</b> · Contiene</p>
+                <p class="mb-1"><b>&gt;pan</b> · Exacto</p>
+                <p class="mb-1"><b>pan*leche</b> · Ambos</p>
+                <p><b>pan_leche</b> · Cualquiera</p>
+                <p class="mt-2 pt-2 border-t border-gray-100 text-[10px] text-gray-400">
+                  Ignora mayúsculas, tildes y espacios repetidos.
+                </p>
+              </div>
+            </details>
+
           </div>
 
           <div class="flex justify-between items-center mt-2 text-[10px] font-bold text-gray-400">
@@ -923,8 +947,30 @@
                 v-model="searchQuery"
                 type="text"
                 placeholder="Buscar movimiento..."
-                class="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-1 focus:ring-tema-1"
+                class="w-full pl-9 pr-11 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-1 focus:ring-tema-1"
               >
+              <details class="absolute right-2 top-1/2 -translate-y-1/2 group z-20">
+                <summary
+                  class="list-none cursor-pointer flex items-center justify-center w-7 h-7 rounded-full text-gray-400 hover:text-tema-1 hover:bg-gray-100"
+                  title="Ayuda de búsqueda"
+                  aria-label="Mostrar ayuda de búsqueda"
+                >
+                  <span class="material-symbols-outlined text-[19px]">
+                    help
+                  </span>
+                </summary>
+
+                <div class="absolute right-0 top-full mt-2 w-56 bg-white border border-gray-200 rounded-xl shadow-xl p-3 text-xs text-gray-600 z-50">
+                  <p class="font-black text-tema-1 mb-2">Cómo buscar</p>
+                  <p class="mb-1"><b>pan</b> · Contiene</p>
+                  <p class="mb-1"><b>&gt;pan</b> · Exacto</p>
+                  <p class="mb-1"><b>pan*leche</b> · Ambos</p>
+                  <p><b>pan_leche</b> · Cualquiera</p>
+                  <p class="mt-2 pt-2 border-t border-gray-100 text-[10px] text-gray-400">
+                    Ignora mayúsculas, tildes y espacios repetidos.
+                  </p>
+                </div>
+              </details>
             </div>
 
             <div class="flex items-center gap-2 min-w-0">
@@ -1515,7 +1561,30 @@
                 type="text"
                 v-model="projectionFilters.search"
                 placeholder="Buscar..."
-                class="w-full pl-7 pr-2 py-1.5 border border-gray-300 rounded bg-white outline-none normal-case text-[10px] font-medium">
+                class="w-full pl-7 pr-11 py-1.5 border border-gray-300 rounded bg-white outline-none normal-case text-[10px] font-medium"
+              >
+              <details class="absolute right-2 top-1/2 -translate-y-1/2 group z-20">
+                <summary
+                  class="list-none cursor-pointer flex items-center justify-center w-7 h-7 rounded-full text-gray-400 hover:text-tema-1 hover:bg-gray-100"
+                  title="Ayuda de búsqueda"
+                  aria-label="Mostrar ayuda de búsqueda"
+                >
+                  <span class="material-symbols-outlined text-[19px]">
+                    help
+                  </span>
+                </summary>
+
+                <div class="absolute right-0 top-full mt-2 w-56 bg-white border border-gray-200 rounded-xl shadow-xl p-3 text-xs text-gray-600 z-50">
+                  <p class="font-black text-tema-1 mb-2">Cómo buscar</p>
+                  <p class="mb-1"><b>pan</b> · Contiene</p>
+                  <p class="mb-1"><b>&gt;pan</b> · Exacto</p>
+                  <p class="mb-1"><b>pan*leche</b> · Ambos</p>
+                  <p><b>pan_leche</b> · Cualquiera</p>
+                  <p class="mt-2 pt-2 border-t border-gray-100 text-[10px] text-gray-400">
+                    Ignora mayúsculas, tildes y espacios repetidos.
+                  </p>
+                </div>
+              </details>
             </div>
 
           </div>
@@ -2404,551 +2473,8 @@
 
       </div>
 
-      <!-- VISTA: DASHBOARD -->
-      <div v-if="activeView === 'dashboard'" class="animate-fade-in max-w-7xl mx-auto text-tema-3">
-        <div class="flex justify-between items-center mb-4 border-b-2 border-gray-300 pb-1.5">
-          
-          <div class="hidden md:flex items-center text-tema-1"><span class="material-symbols-outlined text-2xl mr-2">space_dashboard</span><h2 class="text-2xl font-black">Dashboard Financiero</h2></div>
-
-          
-          <div class="flex items-center gap-2">
-            <span class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Periodo:</span>
-            <select v-model="dashboardFilter" @change="dashboardOnPeriodChange" class="p-1 border border-gray-300 rounded-md text-[10px] bg-white outline-none font-bold text-tema-1 shadow-sm">
-              <option value="este_mes">Este Mes</option>
-              <option value="mes_pasado">Mes Pasado</option>
-              <option value="ytd">Este Año a la Fecha</option>
-              <option value="año_pasado">Año Pasado</option>
-              <option value="rango">Rango</option>
-            </select>
-          </div>
-        </div>
-
-         <!-- DASHBOARD: SELECTOR DE RANGO -->
-        <div
-          v-if="dashboardFilter === 'rango'"
-          v-click-outside="dashboardCloseCalendarOutside"
-          class="relative mb-3 flex flex-col items-end gap-1"
-        >
-          <button
-            type="button"
-            @click="dashboardCalendarOpen = !dashboardCalendarOpen"
-            :aria-expanded="String(dashboardCalendarOpen)"
-            aria-controls="dashboard-range-calendar"
-            class="w-full sm:w-auto flex items-center justify-between gap-3 bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs font-bold text-tema-1 shadow-sm"
-          >
-            <span class="flex items-center gap-2">
-              <span class="material-symbols-outlined text-lg">
-                date_range
-              </span>
-              {{ dashboardAppliedStart
-                ? dashboardFormatDate(dashboardAppliedStart)
-                : 'Fecha inicial' }}
-              —
-              {{ dashboardAppliedEnd
-                ? dashboardFormatDate(dashboardAppliedEnd)
-                : 'Fecha final' }}
-            </span>
-            <span class="material-symbols-outlined">
-              {{ dashboardCalendarOpen
-                ? 'keyboard_arrow_up'
-                : 'keyboard_arrow_down' }}
-            </span>
-          </button>
-
-          <div
-            v-show="dashboardCalendarOpen"
-            id="dashboard-range-calendar"
-            class="absolute top-full right-0 mt-1 z-40 w-[280px] max-w-full bg-white rounded-xl border border-gray-200 shadow-xl p-2.5"
-          >
-            <div class="flex items-center justify-between mb-3">
-              <button
-                type="button"
-                @click="dashboardChangeMonth(-1)"
-                aria-label="Mes anterior"
-                class="p-2 rounded-lg hover:bg-gray-100"
-              >
-                <span class="material-symbols-outlined">
-                  chevron_left
-                </span>
-              </button>
-
-              <span class="text-xs font-black uppercase text-tema-1">
-                {{ dashboardCalendarLabel }}
-              </span>
-
-              <button
-                type="button"
-                @click="dashboardChangeMonth(1)"
-                aria-label="Mes siguiente"
-                class="p-2 rounded-lg hover:bg-gray-100"
-              >
-                <span class="material-symbols-outlined">
-                  chevron_right
-                </span>
-              </button>
-            </div>
-
-            <div class="grid grid-cols-7 gap-1 mb-1">
-              <span
-                v-for="dayName in ['Lu','Ma','Mi','Ju','Vi','Sá','Do']"
-                :key="dayName"
-                class="text-center text-[10px] font-black text-gray-400 py-1"
-              >
-                {{ dayName }}
-              </span>
-            </div>
-
-            <div class="grid grid-cols-7 gap-1">
-              <template v-for="(day, index) in dashboardCalendarDays">
-                <span
-                  v-if="!day"
-                  :key="'empty-' + index"
-                  class="h-7"
-                ></span>
-
-                <button
-                  v-else
-                  :key="day.value"
-                  type="button"
-                  @click="dashboardSelectDay(day.value)"
-                  :aria-label="day.value"
-                  :aria-pressed="String(day.value === dashboardRangeStart || day.value === dashboardRangeEnd)"
-                  class="h-7 rounded-md text-[10px] font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400"
-                  :class="dashboardDayClass(day.value)"
-                >
-                  {{ day.day }}
-                </button>
-              </template>
-            </div>
-
-            
-            <div class="mt-2 grid grid-cols-2 gap-1.5">
-              <div class="bg-gray-50 rounded-md p-1.5">
-                <div class="text-[9px] font-black text-gray-400 uppercase">
-                  Inicio
-                </div>
-                <div class="text-xs font-bold text-tema-1">
-                  {{ dashboardFormatDate(dashboardRangeStart) }}
-                </div>
-              </div>
-
-              <div class="bg-gray-50 rounded-md p-1.5">
-                <div class="text-[9px] font-black text-gray-400 uppercase">
-                  Fin
-                </div>
-                <div class="text-xs font-bold text-tema-1">
-                  {{ dashboardFormatDate(dashboardRangeEnd) }}
-                </div>
-              </div>
-            </div>
-
-            <div class="flex justify-between items-center mt-2 pt-2 border-t border-gray-100">
-              <button
-                type="button"
-                @click="dashboardClearRange"
-                class="text-xs font-bold text-gray-500 hover:text-red-500 px-2 py-2"
-              >
-                Limpiar
-              </button>
-
-              <button
-                type="button"
-                @click="dashboardApplyRange"
-                :disabled="!dashboardRangeStart || !dashboardRangeEnd"
-                class="bg-tema-1 text-white text-[10px] font-black rounded-md px-3 py-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                Aplicar rango
-              </button>
-            </div>
-          </div>
-        </div>
-        
-        <!-- FIN SELECTOR DE RANGO -->
-
-        <div
-          v-if="isLoadingList"
-          class="flex flex-col items-center justify-center p-20 text-gray-400"
-        >
-          <div class="loader mb-4"></div>
-          <p class="font-bold text-xs">Cargando métricas...</p>
-        </div>
-
-
-        <div v-else class="pb-10">
-            <!-- BLOQUE 1: TARJETAS KPI -->
-
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
-                
-                <!-- INGRESOS -->
-                <div class="bg-white rounded-xl p-2.5 border border-gray-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow border-l-[3px] border-l-tema-4">
-                    <span class="text-[9px] font-black uppercase text-gray-400 tracking-wider mb-0.5">Ingresos Totales</span>
-                    <span class="text-lg font-black text-tema-3 leading-none mb-1" :class="dashboardData.ingresos.curr > 0 ? 'text-tema-4' : ''">$ {{ formatInput(dashboardData.ingresos.curr) }}</span>
-                    <div class="flex items-center text-[9px] font-bold" :class="getVarColor('ingreso', dashboardData.ingresos.diff)">
-                        <span class="material-symbols-outlined text-[11px] mr-0.5">{{ getVarIcon(dashboardData.ingresos.diff) }}</span>
-                        <span class="tracking-tighter">{{ formatAbs(dashboardData.ingresos.diff) }} ({{ formatPct(dashboardData.ingresos.pct) }})</span>
-                    </div>
-                    <div class="text-[7px] text-gray-400 mt-1 uppercase tracking-widest truncate">{{ dashboardData.compareText }}</div>
-                </div>
-
-                <!-- GASTOS -->
-                <div class="bg-white rounded-xl p-2.5 border border-gray-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow border-l-[3px] border-l-red-500">
-                    <span class="text-[9px] font-black uppercase text-gray-400 tracking-wider mb-0.5">Gastos Totales</span>
-                    <span class="text-lg font-black text-tema-3 leading-none mb-1" :class="dashboardData.gastos.curr > 0 ? 'text-red-500' : ''">$ {{ formatInput(dashboardData.gastos.curr) }}</span>
-                    <div class="flex items-center text-[9px] font-bold" :class="getVarColor('gasto', dashboardData.gastos.diff)">
-                        <span class="material-symbols-outlined text-[11px] mr-0.5">{{ getVarIcon(dashboardData.gastos.diff) }}</span>
-                        <span class="tracking-tighter">{{ formatAbs(dashboardData.gastos.diff) }} ({{ formatPct(dashboardData.gastos.pct) }})</span>
-                    </div>
-                    <div class="text-[7px] text-gray-400 mt-1 uppercase tracking-widest truncate">{{ dashboardData.compareText }}</div>
-                </div>
-
-                <!-- UTILIDAD -->
-                <!-- UTILIDAD -->
-                <div class="bg-white rounded-xl p-2.5 border border-gray-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow border-l-[3px] border-l-blue-400">
-
-                    <div class="flex justify-between items-start mb-1">
-                        <span class="text-[9px] font-black uppercase text-gray-400 tracking-wider">
-                          Utilidad
-                        </span>
-
-                        <span class="text-[7px] font-black bg-tema-bg px-1.5 py-0.5 rounded uppercase tracking-wider text-gray-400">
-                          Margen
-                        </span>
-                    </div>
-
-                    <!-- % DE UTILIDAD / MARGEN MÁS VISIBLE -->
-                    <div class="flex items-baseline gap-1 mb-0.5">
-                      <span
-                        class="text-[23px] font-black leading-none tracking-tight"
-                        :class="dashboardData.utilidad.margin >= 0 ? 'text-tema-1' : 'text-red-500'">
-                        {{ formatPct(dashboardData.utilidad.margin) }}
-                      </span>
-
-                      <span
-                        class="text-[9px] font-black uppercase tracking-widest"
-                        :class="dashboardData.utilidad.margin >= 0 ? 'text-tema-1' : 'text-red-500'">
-                        MG
-                      </span>
-                    </div>
-
-                    <!-- VALOR NETO MÁS PEQUEÑO -->
-                    <div class="flex items-center justify-between mb-1">
-                      <span class="text-[7px] font-black uppercase text-gray-400 tracking-wider">
-                        Neto
-                      </span>
-
-                      <span
-                        class="text-[12px] font-black leading-none"
-                        :class="dashboardData.utilidad.curr > 0 ? 'text-tema-4' : (dashboardData.utilidad.curr < 0 ? 'text-red-500' : 'text-gray-400')">
-                        $ {{ formatInput(dashboardData.utilidad.curr) }}
-                      </span>
-                    </div>
-
-                    <div class="flex items-center text-[9px] font-bold" :class="getVarColor('ingreso', dashboardData.utilidad.diff)">
-                        <span class="material-symbols-outlined text-[11px] mr-0.5">
-                          {{ getVarIcon(dashboardData.utilidad.diff) }}
-                        </span>
-                        <span class="tracking-tighter">
-                          {{ formatAbs(dashboardData.utilidad.diff) }} ({{ formatPct(dashboardData.utilidad.pct) }})
-                        </span>
-                    </div>
-
-                    <div class="text-[7px] text-gray-400 mt-1 uppercase tracking-widest truncate">
-                      {{ dashboardData.compareText }}
-                    </div>
-                </div>
-
-                <!-- DSR (DEUDA/INGRESO) -->
-                <div class="bg-white rounded-xl p-2.5 border border-gray-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow border-l-[3px] border-l-purple-500">
-                    <span class="text-[9px] font-black uppercase text-gray-400 tracking-wider mb-0.5">DSR (Deuda/Ingreso)</span>
-                    <span class="text-lg font-black text-purple-600 leading-none mb-1">{{ formatPct(dashboardData.dsr.curr) }}</span>
-                    <div class="flex items-center text-[9px] font-bold" :class="getVarColor('gasto', dashboardData.dsr.diff)">
-                        <span class="material-symbols-outlined text-[11px] mr-0.5">{{ getVarIcon(dashboardData.gastos.diff) }}</span>
-                        <span class="tracking-tighter">{{ dashboardData.dsr.diff > 0 ? '+' : '' }}{{ dashboardData.dsr.diff.toFixed(1) }} pts</span>
-                    </div>
-                    <div class="text-[7px] text-gray-400 mt-1 uppercase tracking-widest truncate">{{ dashboardData.compareText }}</div>
-                </div>
-
-                <!-- ACTIVOS (SOLO AHORRO/INVERSIÓN) -->
-                <div class="bg-white rounded-xl p-2.5 border border-gray-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow border-l-[3px] border-l-tema-5">
-                    <span class="text-[9px] font-black uppercase text-gray-400 tracking-wider mb-0.5">Saldo Ahorro / Inv.</span>
-                    <span class="text-lg font-black text-tema-3 leading-none mb-1" :class="dashboardData.activos.curr > 0 ? 'text-tema-5' : ''">$ {{ formatInput(dashboardData.activos.curr) }}</span>
-                    <div class="flex items-center text-[9px] font-bold" :class="getVarColor('activo', dashboardData.activos.diff)">
-                        <span class="material-symbols-outlined text-[11px] mr-0.5">{{ getVarIcon(dashboardData.activos.diff) }}</span>
-                        <span class="tracking-tighter">{{ formatAbs(dashboardData.activos.diff) }} ({{ formatPct(dashboardData.activos.pct) }})</span>
-                    </div>
-                    <div class="text-[7px] text-gray-400 mt-1 uppercase tracking-widest truncate">{{ dashboardData.compareText }}</div>
-                </div>
-
-                <!-- PASIVOS -->
-                <div class="bg-white rounded-xl p-2.5 border border-gray-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow border-l-[3px] border-l-orange-500">
-                    <span class="text-[9px] font-black uppercase text-gray-400 tracking-wider mb-0.5">Saldo Pasivos</span>
-                    <span class="text-lg font-black text-tema-3 leading-none mb-1" :class="dashboardData.pasivos.curr > 0 ? 'text-orange-500' : ''">$ {{ formatInput(dashboardData.pasivos.curr) }}</span>
-                    <div class="flex items-center text-[9px] font-bold" :class="getVarColor('pasivo', dashboardData.pasivos.diff)">
-                        <span class="material-symbols-outlined text-[11px] mr-0.5">{{ getVarIcon(dashboardData.pasivos.diff) }}</span>
-                        <span class="tracking-tighter">{{ formatAbs(dashboardData.pasivos.diff) }} ({{ formatPct(dashboardData.pasivos.pct) }})</span>
-                    </div>
-                    <div class="text-[7px] text-gray-400 mt-1 uppercase tracking-widest truncate">{{ dashboardData.compareText }}</div>
-                </div>
-            </div>
-            
-            <!-- BLOQUE 2: TABLAS DE DETALLE -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-                
-                <!-- TABLA GASTOS -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
-                    <div class="bg-red-50 border-b border-red-100 px-3 py-2 flex justify-between items-center">
-                        <h3 class="text-[10px] font-black text-red-600 uppercase tracking-widest flex items-center"><span class="material-symbols-outlined text-[14px] mr-1">money_off</span> Gastos por Grupo</h3>
-                    </div>
-                    <div class="px-2 py-1.5 bg-gray-50/80 border-b border-gray-100 flex text-[8px] font-black text-gray-400 uppercase tracking-widest">
-                        <div class="w-1/3 pl-1">Grupo</div>
-                        <div class="w-1/4 text-right">Media (Mes)</div>
-                        <div class="w-1/4 text-right pr-2">Total</div>
-                        <div class="w-1/6 text-right pr-1">% Tipo</div>
-                    </div>
-                    <div class="p-1 overflow-y-auto max-h-56 text-[10px]">
-                        <div v-for="row in dashboardTables.gastos" :key="row.label" class="flex items-center py-1.5 border-b border-gray-50 last:border-0 hover:bg-gray-50 px-2">
-                            <span class="font-bold text-gray-600 truncate pr-2 w-1/3" :title="row.label">{{ row.label }}</span>
-                            <span class="font-mono text-gray-500 text-right w-1/4 pr-2">$ {{ formatInput(row.promedio) }}</span>
-                            <div class="flex flex-col items-end w-1/4 pr-2">
-                                <span class="font-black text-tema-3">$ {{ formatInput(row.curr) }}</span>
-                                <span class="text-[8px] font-bold flex items-center" :class="getVarColor('gasto', row.diff)">
-                                    <span class="material-symbols-outlined text-[10px] mr-0.5">{{ getVarIcon(row.diff) }}</span>
-                                    {{ formatAbs(row.diff) }} ({{ formatPct(row.pct) }})
-                                </span>
-                            </div>
-                            <div class="w-1/6 flex items-center justify-end gap-1.5">
-                                <span class="font-bold text-[9px] text-gray-500 w-8 text-right">{{ row.pctTotal.toFixed(1) }}%</span>
-                                <div class="w-10 h-1.5 bg-gray-200 rounded-full overflow-hidden hidden sm:block">
-                                    <div class="h-full rounded-full bg-red-400" :style="{ width: Math.min(row.pctTotal, 100) + '%' }"></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div v-if="dashboardTables.gastos.length === 0" class="text-center text-gray-400 italic py-4">Sin datos</div>
-                    </div>
-                </div>
-
-                <!-- TABLA INGRESOS -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
-                    <div class="bg-green-50 border-b border-green-100 px-3 py-2 flex justify-between items-center">
-                        <h3 class="text-[10px] font-black text-green-600 uppercase tracking-widest flex items-center"><span class="material-symbols-outlined text-[14px] mr-1">attach_money</span> Ingresos por Categoría</h3>
-                    </div>
-                    <div class="px-2 py-1.5 bg-gray-50/80 border-b border-gray-100 flex text-[8px] font-black text-gray-400 uppercase tracking-widest">
-                        <div class="w-1/3 pl-1">Categoría</div>
-                        <div class="w-1/4 text-right">Media (Mes)</div>
-                        <div class="w-1/4 text-right pr-2">Total</div>
-                        <div class="w-1/6 text-right pr-1">% Tipo</div>
-                    </div>
-                    <div class="p-1 overflow-y-auto max-h-56 text-[10px]">
-                        <div v-for="row in dashboardTables.ingresos" :key="row.label" class="flex items-center py-1.5 border-b border-gray-50 last:border-0 hover:bg-gray-50 px-2">
-                            <span class="font-bold text-gray-600 truncate pr-2 w-1/3" :title="row.label">{{ row.label }}</span>
-                            <span class="font-mono text-gray-500 text-right w-1/4 pr-2">$ {{ formatInput(row.promedio) }}</span>
-                            <div class="flex flex-col items-end w-1/4 pr-2">
-                                <span class="font-black text-tema-3">$ {{ formatInput(row.curr) }}</span>
-                                <span class="text-[8px] font-bold flex items-center" :class="getVarColor('ingreso', row.diff)">
-                                    <span class="material-symbols-outlined text-[10px] mr-0.5">{{ getVarIcon(row.diff) }}</span>
-                                    {{ formatAbs(row.diff) }} ({{ formatPct(row.pct) }})
-                                </span>
-                            </div>
-                            <div class="w-1/6 flex items-center justify-end gap-1.5">
-                                <span class="font-bold text-[9px] text-gray-500 w-8 text-right">{{ row.pctTotal.toFixed(1) }}%</span>
-                                <div class="w-10 h-1.5 bg-gray-200 rounded-full overflow-hidden hidden sm:block">
-                                    <div class="h-full rounded-full bg-green-400" :style="{ width: Math.min(row.pctTotal, 100) + '%' }"></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div v-if="dashboardTables.ingresos.length === 0" class="text-center text-gray-400 italic py-4">Sin datos</div>
-                    </div>
-                </div>
-
-                <!-- TABLA ACTIVOS -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
-                    <div class="bg-blue-50 border-b border-blue-100 px-3 py-2 flex justify-between items-center">
-                        <h3 class="text-[10px] font-black text-tema-5 uppercase tracking-widest flex items-center"><span class="material-symbols-outlined text-[14px] mr-1">domain</span> Ahorro/Inv. por Tercero</h3>
-                    </div>
-                    <div class="px-2 py-1.5 bg-gray-50/80 border-b border-gray-100 flex text-[8px] font-black text-gray-400 uppercase tracking-widest">
-                        <div class="w-1/3 pl-1">Ahorro/Inv.</div>
-                        <div class="w-1/4 text-right">Media (Mes)</div>
-                        <div class="w-1/4 text-right pr-2">Total</div>
-                        <div class="w-1/6 text-right pr-1">% Tipo</div>
-                    </div>
-                    <div class="p-1 overflow-y-auto max-h-56 text-[10px]">
-                        <div v-for="row in dashboardTables.activos" :key="row.label" class="flex items-center py-1.5 border-b border-gray-50 last:border-0 hover:bg-gray-50 px-2">
-                            <span class="font-bold text-gray-600 truncate pr-2 w-1/3" :title="row.label">{{ row.label }}</span>
-                            <span class="font-mono text-gray-500 text-right w-1/4 pr-2">$ {{ formatInput(row.promedio) }}</span>
-                            <div class="flex flex-col items-end w-1/4 pr-2">
-                                <span class="font-black text-tema-3">$ {{ formatInput(row.curr) }}</span>
-                                <span class="text-[8px] font-bold flex items-center" :class="getVarColor('activo', row.diff)">
-                                    <span class="material-symbols-outlined text-[10px] mr-0.5">{{ getVarIcon(row.diff) }}</span>
-                                    {{ formatAbs(row.diff) }} ({{ formatPct(row.pct) }})
-                                </span>
-                            </div>
-                            <div class="w-1/6 flex items-center justify-end gap-1.5">
-                                <span class="font-bold text-[9px] text-gray-500 w-8 text-right">{{ row.pctTotal.toFixed(1) }}%</span>
-                                <div class="w-10 h-1.5 bg-gray-200 rounded-full overflow-hidden hidden sm:block">
-                                    <div class="h-full rounded-full bg-blue-400" :style="{ width: Math.min(row.pctTotal, 100) + '%' }"></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div v-if="dashboardTables.activos.length === 0" class="text-center text-gray-400 italic py-4">Sin datos</div>
-                    </div>
-                </div>
-
-                <!-- TABLA PASIVOS -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
-                    <div class="bg-orange-50 border-b border-orange-100 px-3 py-2 flex justify-between items-center">
-                        <h3 class="text-[10px] font-black text-orange-500 uppercase tracking-widest flex items-center"><span class="material-symbols-outlined text-[14px] mr-1">account_balance</span> Pasivos por Tercero</h3>
-                    </div>
-                    <div class="px-2 py-1.5 bg-gray-50/80 border-b border-gray-100 flex text-[8px] font-black text-gray-400 uppercase tracking-widest">
-                        <div class="w-1/3 pl-1">Pasivo</div>
-                        <div class="w-1/4 text-right">Media (Mes)</div>
-                        <div class="w-1/4 text-right pr-2">Total</div>
-                        <div class="w-1/6 text-right pr-1">% Tipo</div>
-                    </div>
-                    <div class="p-1 overflow-y-auto max-h-56 text-[10px]">
-                        <div v-for="row in dashboardTables.pasivos" :key="row.label" class="flex items-center py-1.5 border-b border-gray-50 last:border-0 hover:bg-gray-50 px-2">
-                            <span class="font-bold text-gray-600 truncate pr-2 w-1/3" :title="row.label">{{ row.label }}</span>
-                            <span class="font-mono text-gray-500 text-right w-1/4 pr-2">$ {{ formatInput(row.promedio) }}</span>
-                            <div class="flex flex-col items-end w-1/4 pr-2">
-                                <span class="font-black text-tema-3">$ {{ formatInput(row.curr) }}</span>
-                                <span class="text-[8px] font-bold flex items-center" :class="getVarColor('pasivo', row.diff)">
-                                    <span class="material-symbols-outlined text-[10px] mr-0.5">{{ getVarIcon(row.diff) }}</span>
-                                    {{ formatAbs(row.diff) }} ({{ formatPct(row.pct) }})
-                                </span>
-                            </div>
-                            <div class="w-1/6 flex items-center justify-end gap-1.5">
-                                <span class="font-bold text-[9px] text-gray-500 w-8 text-right">{{ row.pctTotal.toFixed(1) }}%</span>
-                                <div class="w-10 h-1.5 bg-gray-200 rounded-full overflow-hidden hidden sm:block">
-                                    <div class="h-full rounded-full bg-orange-400" :style="{ width: Math.min(row.pctTotal, 100) + '%' }"></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div v-if="dashboardTables.pasivos.length === 0" class="text-center text-gray-400 italic py-4">Sin datos</div>
-                    </div>
-                </div>
-
-            </div>
-
-            <!-- BLOQUE 3: GRÁFICAS -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-                <!-- GRÁFICA P&G -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-                    <h3 class="text-[11px] font-black uppercase text-tema-1 mb-2">Ingresos, Gastos y Utilidad (Últimos 12 Meses)</h3>
-                    <div class="relative h-64 md:h-72 w-full">
-                        <canvas id="chartPyg"></canvas>
-                    </div>
-                </div>
-                
-                <!-- GRÁFICA PASIVOS -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-                    <h3 class="text-[11px] font-black uppercase text-tema-1 mb-2">Evolución de Pasivos (Últimos 12 Meses)</h3>
-                    <div class="relative h-64 md:h-72 w-full">
-                        <canvas id="chartPasivos"></canvas>
-                    </div>
-                </div>
-            </div>
-
-            <!-- BLOQUE 4: TABLA DE ANÁLISIS DETALLADO -->
-            <div class="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col mb-4">
-                
-                <div class="bg-tema-bg/50 border-b border-gray-200 px-4 py-3 flex flex-wrap justify-between items-center gap-3">
-                    <h3 class="text-[11px] font-black text-tema-1 uppercase tracking-widest flex items-center">
-                        <span class="material-symbols-outlined text-[16px] mr-1.5">analytics</span>
-                        Análisis General Detallado
-                    </h3>
-
-                    <button
-                        type="button"
-                        @click="isDashboardDetailOpen = !isDashboardDetailOpen"
-                        :aria-expanded="String(isDashboardDetailOpen)"
-                        aria-controls="dashboard-detail-content"
-                        :aria-label="isDashboardDetailOpen ? 'Contraer análisis detallado' : 'Expandir análisis detallado'"
-                        class="ml-auto p-2 rounded-lg text-tema-1 hover:bg-white focus:outline-none focus:ring-2 focus:ring-tema-1 transition-colors flex items-center justify-center"
-                    >
-                        <span class="material-symbols-outlined text-[22px]">
-                            {{ isDashboardDetailOpen ? 'keyboard_arrow_up' : 'keyboard_arrow_down' }}
-                        </span>
-                    </button>
-                    <div v-show="isDashboardDetailOpen" class="flex items-center gap-2 text-[10px] font-bold text-tema-3">
-                        <select v-model="dashTableFilterTipo" class="px-2 py-1 border border-gray-300 rounded bg-white outline-none focus:ring-1 focus:ring-tema-1 transition-all">
-                            <option value="">Todos los Tipos</option>
-                            <option value="Ingreso">Ingresos</option>
-                            <option value="Gasto">Gastos</option>
-                            <option value="Activo">Activos</option>
-                            <option value="Pasivo">Pasivos</option>
-                        </select>
-                        <select v-model="dashTableFilterGrupo" class="px-2 py-1 border border-gray-300 rounded bg-white outline-none focus:ring-1 focus:ring-tema-1 transition-all">
-                            <option value="">Todos los Grupos</option>
-                            <option v-for="g in dashTableGruposOptions" :value="g" :key="g">{{ g }}</option>
-                        </select>
-                    </div>
-                </div>
-                
-                <div
-                    id="dashboard-detail-content"
-                    v-show="isDashboardDetailOpen"
-                    class="overflow-x-auto"
-                >
-                    <table class="w-full text-left border-collapse table-auto text-[10px]">
-                        <thead class="bg-gray-50/80 text-gray-500 uppercase tracking-wider border-b border-gray-200">
-                            <tr>
-                                <th class="p-2.5 font-black w-20">Tipo</th>
-                                <th class="p-2.5 font-black">Grupo</th>
-                                <th class="p-2.5 font-black">Categoría</th>
-                                <th class="p-2.5 font-black text-center" title="Transacciones en el periodo">Cant. (Tx)</th>
-                                <th class="p-2.5 font-black text-right" title="Promedio por mes activo en el periodo">Media (Mes)</th>
-                                <th class="p-2.5 font-black text-right">Valor Total</th>
-                                <th class="p-2.5 font-black text-right">Variación</th>
-                                <th class="p-2.5 font-black text-right w-24">% Tipo</th>
-                            </tr>
-                        </thead>
-                        <tbody class="text-tema-3">
-                            <tr v-for="(row, idx) in dashboardDetailedTable" :key="idx" class="border-b border-gray-100 hover:bg-tema-bg/40 transition-colors">
-                                <td class="p-2.5">
-                                    <span class="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-tighter" :class="getTipoBadgeColor(row.tipo)">
-                                        {{ row.tipo }}
-                                    </span>
-                                </td>
-                                <td class="p-2.5 font-bold text-gray-600 truncate max-w-[100px]" :title="row.grupo">{{ row.grupo }}</td>
-                                <td class="p-2.5 font-bold truncate max-w-[120px]" :title="row.categoria">{{ row.categoria }}</td>
-                                <td class="p-2.5 text-center font-mono text-gray-500">{{ row.count }}</td>
-                                <td class="p-2.5 text-right font-mono text-gray-500">$ {{ formatInput(row.promedio) }}</td>
-                                <td class="p-2.5 text-right font-black text-[11px]" :class="getValorColor(row.tipo)">$ {{ formatInput(row.curr) }}</td>
-                                <td class="p-2.5 text-right">
-                                    <div class="flex flex-col items-end leading-none">
-                                        <span class="font-bold text-[9px] flex items-center justify-end" :class="getVarColor(row.tipo.toLowerCase(), row.diff)">
-                                            <span class="material-symbols-outlined text-[10px] mr-0.5">{{ getVarIcon(row.diff) }}</span>
-                                            {{ formatAbs(row.diff) }}
-                                        </span>
-                                        <span class="text-[8px] text-gray-400 font-bold mt-0.5">{{ formatPct(row.pct) }}</span>
-                                    </div>
-                                </td>
-                                <td class="p-2.5">
-                                    <div class="flex items-center justify-end gap-1.5">
-                                        <span class="font-bold text-[9px] text-gray-500 w-8 text-right">{{ row.pctTotal.toFixed(1) }}%</span>
-                                        <div class="w-12 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                                            <div class="h-full rounded-full" :class="getProgressBarColor(row.tipo)" :style="{ width: Math.min(row.pctTotal, 100) + '%' }"></div>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr v-if="dashboardDetailedTable.length === 0">
-                                <td colspan="8" class="p-8 text-center text-gray-400 italic">No hay registros para este filtro en el periodo seleccionado.</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div class="mt-4 bg-blue-50/50 border border-blue-100 p-3 rounded-lg text-[9px] text-gray-500 leading-relaxed max-w-3xl">
-                <span class="font-bold text-tema-1">Nota Metodológica:</span> 
-                <b>Ingresos, Gastos y Utilidad</b> miden el <i>flujo dentro del periodo</i>. 
-                <b>Activos y Pasivos</b> miden el <i>saldo acumulado histórico al cierre</i> del periodo. 
-                <b>Media (Mes)</b> toma el valor acumulado del periodo y lo divide entre la cantidad de meses en los que hubo actividad para esa categoría.
-                <b>DSR</b> (Debt Service Ratio) compara los pagos de pasivos (valores negativos) vs el ingreso del periodo.
-            </div>
-        </div>
-      </div>
-
+      <!-- Dashboard externo: cargado antes de montar Vue -->
+      <div id="neptuno-dashboard-slot"></div>
     </main>
 
     
@@ -3086,6 +2612,29 @@
 </div>
 
   <script src="./js/api.js"></script>
-  <script src="./js/app.js"></script>
+  <script>
+    // Cargar la plantilla ANTES de crear la instancia Vue.
+    // Conserva todas las expresiones, eventos y directivas en el Vue raíz.
+    (async function loadDashboardTemplate() {
+      try {
+        const response = await fetch('./modules/dashboard.html', { cache: 'no-cache' });
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        const html = await response.text();
+        const slot = document.getElementById('neptuno-dashboard-slot');
+        if (!slot) throw new Error('Contenedor Dashboard no encontrado');
+        slot.outerHTML = html;
+        const script = document.createElement('script');
+        script.src = './js/app.js';
+        script.onerror = function() {
+          console.error('[NEPTUNO] No se pudo cargar js/app.js');
+        };
+        document.body.appendChild(script);
+      } catch (error) {
+        console.error('[NEPTUNO] Error cargando el módulo Dashboard:', error);
+        const slot = document.getElementById('neptuno-dashboard-slot');
+        if (slot) slot.textContent = 'No se pudo cargar el módulo Dashboard. Recarga la página.';
+      }
+    })();
+  </script>
 </body>
 </html>

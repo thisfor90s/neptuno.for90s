@@ -32,6 +32,63 @@ function getStoredActiveView() {
   }
 }
 
+
+/**
+ * NEPTUNO FZ - BUSQUEDA AVANZADA
+ *
+ * > Coincidencia exacta por campo
+ * * AND
+ * _ OR
+ *
+ * Prioridad: AND antes de OR.
+ * Sin > se utiliza coincidencia parcial.
+ */
+
+function normalizeSearchText_(value) {
+  return String(value == null ? '' : value)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function matchesAdvancedSearch_(query, fields) {
+
+  const raw = String(query == null ? '' : query).trim();
+
+  if (!raw) return true;
+
+  const exact = raw.startsWith('>');
+  const expression = exact
+    ? raw.substring(1).trim()
+    : raw;
+
+  if (!expression) return true;
+
+  const values = fields.map(normalizeSearchText_);
+
+  // OR: cualquiera de los grupos puede coincidir.
+  return expression.split('_').some(orGroup => {
+
+    const terms = orGroup.split('*')
+      .map(normalizeSearchText_)
+      .filter(Boolean);
+
+    if (!terms.length) return false;
+
+    // AND: todos los terminos del grupo.
+    return terms.every(term =>
+      values.some(value =>
+        exact
+          ? value === term
+          : value.includes(term)
+      )
+    );
+  });
+}
+
+
 Vue.directive('click-outside', {
 
   bind(el, binding, vnode) {
@@ -224,34 +281,23 @@ new Vue({
   },
 
   computed: {
-
     
     dbFlashFiltrada() {
-      const normalizar = valor =>
-        String(valor == null ? '' : valor)
-          .normalize('NFD')
-          .replace(/[\u0300-\u036f]/g, '')
-          .toLowerCase()
-          .trim();
 
-      const consulta = normalizar(this.flashSearchQuery);
-
-      if (!consulta) return this.dbFlash;
-
-      return this.dbFlash.filter(item => {
-        const contenido = [
-          item.categoria,
-          item.grupo,
-          item.tipo,
-          item.descripcion,
-          item.medio,
-          item.tercero
-        ].map(normalizar).join(' ');
-
-        return contenido.includes(consulta);
-      });
+      return this.dbFlash.filter(item =>
+        matchesAdvancedSearch_(
+          this.flashSearchQuery,
+          [
+            item.categoria,
+            item.grupo,
+            item.tipo,
+            item.descripcion,
+            item.medio,
+            item.tercero
+          ]
+        )
+      );
     },
-
 
 
     hayFiltroTesoreria() {
@@ -1096,12 +1142,15 @@ new Vue({
 
         if (!matchPeriodo) return false;
 
-        const s = this.searchQuery.toLowerCase();
-        const mSearch = !s ||
-          (t.categoria || '').toLowerCase().includes(s) ||
-          (t.tercero || '').toLowerCase().includes(s) ||
-          (t.grupo || '').toLowerCase().includes(s) ||
-          (t.descripcion || '').toLowerCase().includes(s);
+        const mSearch = matchesAdvancedSearch_(
+          this.searchQuery,
+          [
+            t.categoria,
+            t.tercero,
+            t.grupo,
+            t.descripcion
+          ]
+        );
 
         const mTipo = !this.filters.tipo || t.tipo === this.filters.tipo;
         const mGrupo = !this.filters.grupo || t.grupo === this.filters.grupo;
@@ -1412,18 +1461,17 @@ new Vue({
         if (f.categoria && row.categoria !== f.categoria) return false;
         if (f.tercero && row.tercero !== f.tercero) return false;
 
-        const s = (f.search || '').toLowerCase().trim();
-
-        if (s) {
-          const text = [
+        if (!matchesAdvancedSearch_(
+          f.search,
+          [
             row.tipo,
             row.grupo,
             row.categoria,
             row.tercero,
             row.descripcion
-          ].join(' ').toLowerCase();
-
-          if (!text.includes(s)) return false;
+          ]
+        )) {
+          return false;
         }
 
         return true;
@@ -3289,19 +3337,65 @@ new Vue({
 
 
     
-    async fetchListData(silent = false) {
+    
+    async fetchListData(silent = false, singleLoad = true) {
+
       if (!silent) {
         this.isLoadingList = true;
         this.movimientosHistoryReady = false;
         this.movimientosHistoryError = false;
         this.dbLista = [];
-
       } else {
         this.isSyncingBackground = true;
       }
 
+      const inicio = performance.now();
+
       try {
-        const response1 = await apiGet('getListData', { onlyCurrentYear: true });
+
+        // ==========================================
+        // CARGA UNICA - MODO PREDETERMINADO
+        // ==========================================
+        if (singleLoad) {
+
+          const response = await apiGet(
+            'getListData',
+            { onlyCurrentYear: false }
+          );
+
+          if (response.success) {
+
+            this.dbLista = response.data.items || [];
+            this.movimientosHistoryReady = true;
+            this.movimientosHistoryError = false;
+
+            console.log('[NEPTUNO] Carga única completada', {
+              registros: this.dbLista.length,
+              tiempo_ms: Math.round(performance.now() - inicio)
+            });
+
+          } else {
+
+            this.movimientosHistoryReady = false;
+            this.movimientosHistoryError = true;
+
+            this.failedErrorMessage =
+              response.message || 'Error cargando movimientos';
+
+            this.showErrorModal = true;
+          }
+
+          return;
+        }
+
+        // ==========================================
+        // DOBLE CARGA - MODO OPCIONAL
+        // ==========================================
+
+        const response1 = await apiGet(
+          'getListData',
+          { onlyCurrentYear: true }
+        );
 
         if (response1.success) {
           this.dbLista = response1.data.items || [];
@@ -3313,35 +3407,41 @@ new Vue({
 
         this.isSyncingBackground = true;
 
-        const response2 = await apiGet('getListData', { onlyCurrentYear: false });
+        const response2 = await apiGet(
+          'getListData',
+          { onlyCurrentYear: false }
+        );
 
-        
         if (response2.success) {
+
           this.dbLista = response2.data.items || [];
           this.movimientosHistoryReady = true;
           this.movimientosHistoryError = false;
+
         } else {
+
           this.movimientosHistoryReady = false;
           this.movimientosHistoryError = true;
         }
 
       } catch (error) {
-        console.error(error);
-        
+
+        console.error('[NEPTUNO] Error de carga:', error);
+
         this.movimientosHistoryReady = false;
         this.movimientosHistoryError = true;
 
         this.failedErrorMessage = 'Error cargando movimientos';
         this.showErrorModal = true;
 
-        if (!silent) {
-          this.isLoadingList = false;
-        }
       } finally {
+
         this.isSyncingBackground = false;
         this.isLoadingList = false;
+
       }
     },
+
 
     
     async deleteTransaction(transaction) {
@@ -3493,65 +3593,86 @@ new Vue({
       }
     },
     
+    
     async fetchInitialDashboardData() {
       this.isLoadingList = true;
       this.isSyncingBackground = false;
       this.dashboardHistoryReady = false;
       this.dbLista = [];
 
+      // Medición de carga única del histórico.
+      const inicio = performance.now();
+
+      console.log(
+        '[DASHBOARD] Iniciando carga única del histórico'
+      );
 
       try {
-        const response1 = await apiGet('getListData', { onlyCurrentYear: true });
+        // Una sola consulta: todos los años.
+        const response = await apiGet(
+          'getListData',
+          { onlyCurrentYear: false }
+        );
 
-        if (response1.success) {
-          this.dbLista = response1.data.items || [];
+        const tiempoAPI = performance.now() - inicio;
+
+        if (!response.success) {
+          this.failedErrorMessage =
+            response.message ||
+            'No se pudo cargar el histórico del Dashboard';
+
+          this.showErrorModal = true;
+
+          console.error(
+            '[DASHBOARD] Error de carga:',
+            response.message
+          );
+
+          return;
         }
 
-        this.isLoadingList = false;
+        // Una única actualización de datos.
+        this.dbLista = response.data.items || [];
+        this.dashboardHistoryReady = true;
 
-        this.$nextTick(() => {
-          if (this.activeView === 'dashboard') {
-            this.renderCharts();
+        // Esperar a que Vue actualice la interfaz.
+        await this.$nextTick();
+
+        if (this.activeView === 'dashboard') {
+          this.renderCharts();
+        }
+
+        const tiempoTotal = performance.now() - inicio;
+
+        console.log(
+          '[DASHBOARD] Carga única completada',
+          {
+            registros: this.dbLista.length,
+            tiempoAPI_ms: Math.round(tiempoAPI),
+            tiempoTotal_ms: Math.round(tiempoTotal),
+            tiempoTotal_seg: Number(
+              (tiempoTotal / 1000).toFixed(3)
+            )
           }
-        });
-
-        this.isSyncingBackground = true;
-
-        apiGet('getListData', { onlyCurrentYear: false })
-          .then(response2 => {
-            
-            if (response2.success) {
-              this.dbLista = response2.data.items || [];
-              this.dashboardHistoryReady = true;
-            } else {
-              this.dashboardHistoryReady = false;
-              this.failedErrorMessage =
-                'No se pudo completar la carga histórica del Dashboard';
-              this.showErrorModal = true;
-            }
-
-
-            this.$nextTick(() => {
-              if (this.activeView === 'dashboard') {
-                this.renderCharts();
-              }
-            });
-          })
-          .catch(error => {
-            console.error(error);
-          })
-          .finally(() => {
-            this.isSyncingBackground = false;
-          });
+        );
 
       } catch (error) {
-        console.error(error);
-        this.failedErrorMessage = 'Error cargando datos iniciales del dashboard';
+        console.error(
+          '[DASHBOARD] Error de conexión:',
+          error
+        );
+
+        this.failedErrorMessage =
+          'Error cargando el histórico del Dashboard';
+
         this.showErrorModal = true;
+
+      } finally {
         this.isLoadingList = false;
         this.isSyncingBackground = false;
       }
     },
+
 
     parseExpression(val) {
       if (!val) return val;
