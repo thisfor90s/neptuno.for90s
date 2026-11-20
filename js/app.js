@@ -2402,361 +2402,164 @@ new Vue({
     renderCharts() {
       const canvasPyg = document.getElementById('chartPyg');
       const canvasPasivos = document.getElementById('chartPasivos');
-
       if (!canvasPyg || !canvasPasivos) return;
-
-      if (this.chartPygInstance) this.chartPygInstance.destroy();
-      if (this.chartPasivosInstance) this.chartPasivosInstance.destroy();
+      if (!canvasPyg.getClientRects().length || !canvasPasivos.getClientRects().length) return;
 
       const cData = this.dashboardChartsData;
-
-      const ctxPyg = canvasPyg.getContext('2d');
-      const ctxPasivos = canvasPasivos.getContext('2d');
-
-      const compactFormatter = function(value) {
-        return new Intl.NumberFormat('es-CO', {
-          notation: 'compact',
-          compactDisplay: 'short',
-          maximumFractionDigits: 1
-        }).format(value);
+      const mobile = window.innerWidth < 640;
+      const money = value => '$ ' + new Intl.NumberFormat('es-CO', {
+        maximumFractionDigits: 0
+      }).format(value);
+      const compact = value => new Intl.NumberFormat('es-CO', {
+        notation: 'compact', maximumFractionDigits: 1
+      }).format(value);
+      const colors = {
+        navy: '#013362', teal: '#16A6A0', coral: '#E37B79',
+        blue: '#3485B7', orange: '#DC8748', slate: '#93A7BA',
+        ink: '#35465A', muted: '#738398', grid: 'rgba(1,51,98,.075)'
       };
-
-      const moneyFormatter = function(value) {
-        return '$ ' + new Intl.NumberFormat('es-CO', {
-          maximumFractionDigits: 0
-        }).format(value);
-      };
-
-      const gradientIngresos = ctxPyg.createLinearGradient(0, 0, 0, 260);
-      gradientIngresos.addColorStop(0, 'rgba(135, 216, 194, 0.95)');
-      gradientIngresos.addColorStop(1, 'rgba(135, 216, 194, 0.35)');
-
-      const gradientGastos = ctxPyg.createLinearGradient(0, 0, 0, 260);
-      gradientGastos.addColorStop(0, 'rgba(239, 68, 68, 0.95)');
-      gradientGastos.addColorStop(1, 'rgba(239, 68, 68, 0.35)');
-
-      const gradientUtilidad = ctxPyg.createLinearGradient(0, 0, 0, 260);
-      gradientUtilidad.addColorStop(0, 'rgba(86, 174, 217, 0.22)');
-      gradientUtilidad.addColorStop(1, 'rgba(86, 174, 217, 0.02)');
-
-      const gradientPasivos = ctxPasivos.createLinearGradient(0, 0, 0, 260);
-      gradientPasivos.addColorStop(0, 'rgba(249, 115, 22, 0.22)');
-      gradientPasivos.addColorStop(1, 'rgba(249, 115, 22, 0.02)');
-
-      const gradientMovimiento = ctxPasivos.createLinearGradient(0, 0, 0, 260);
-      gradientMovimiento.addColorStop(0, 'rgba(1, 51, 98, 0.22)');
-      gradientMovimiento.addColorStop(1, 'rgba(1, 51, 98, 0.06)');
-
-      const baseChartOptions = {
+      const base = {
         responsive: true,
         maintainAspectRatio: false,
-        interaction: {
-          mode: 'index',
-          intersect: false
-        },
-        animation: {
-          duration: 650,
-          easing: 'easeOutQuart'
-        },
-        layout: {
-          padding: {
-            top: 8,
-            right: 8,
-            bottom: 0,
-            left: 4
-          }
-        },
+        animation: { duration: 450, easing: 'easeOutCubic' },
+        interaction: { mode: 'index', intersect: false },
+        layout: { padding: { top: 12, right: 8, bottom: 4, left: 4 } },
         plugins: {
           legend: {
-            position: 'top',
-            align: 'center',
+            position: 'top', align: 'start',
             labels: {
-              usePointStyle: true,
-              pointStyle: 'circle',
-              boxWidth: 7,
-              boxHeight: 7,
-              padding: 16,
-              color: '#6B7280',
-              font: {
-                size: 11,
-                weight: '700'
-              }
+              usePointStyle: true, pointStyle: 'circle', boxWidth: 8,
+              boxHeight: 8, padding: mobile ? 10 : 20,
+              color: colors.ink, font: { size: mobile ? 10 : 12, weight: '600' }
             }
           },
           tooltip: {
-            enabled: true,
-            backgroundColor: 'rgba(7, 8, 6, 0.88)',
-            titleColor: '#FFFFFF',
-            bodyColor: '#FFFFFF',
-            borderColor: 'rgba(255,255,255,0.12)',
-            borderWidth: 1,
-            padding: 11,
-            cornerRadius: 10,
-            displayColors: true,
-            boxWidth: 8,
-            boxHeight: 8,
-            titleFont: {
-              size: 11,
-              weight: '800'
-            },
-            bodyFont: {
-              size: 11,
-              weight: '700'
-            }
+            backgroundColor: colors.navy, titleColor: '#fff',
+            bodyColor: '#F0F6FA', borderColor: 'rgba(255,255,255,.16)',
+            borderWidth: 1, cornerRadius: 9, padding: 10,
+            boxPadding: 5, usePointStyle: true,
+            titleFont: { size: 12, weight: '700' },
+            bodyFont: { size: 11 }
           }
         }
       };
+      const xAxis = () => ({
+        grid: { display: false }, border: { display: false },
+        ticks: {
+          color: colors.muted, maxRotation: 0, minRotation: 0,
+          autoSkip: true, maxTicksLimit: mobile ? 6 : 12,
+          font: { size: mobile ? 9 : 11, weight: '500' }
+        }
+      });
+      const valueAxis = (position, showGrid = true, formatter = compact) => ({
+        type: 'linear', position,
+        grid: { drawOnChartArea: showGrid, color: colors.grid },
+        border: { display: false },
+        ticks: {
+          color: colors.muted, padding: 8, maxTicksLimit: 5,
+          font: { size: mobile ? 9 : 10 }, callback: formatter
+        }
+      });
 
-      this.chartPygInstance = new Chart(ctxPyg, {
+      // Destruir las instancias anteriores solo cuando los canvas existen.
+      if (this.chartPygInstance) this.chartPygInstance.destroy();
+      if (this.chartPasivosInstance) this.chartPasivosInstance.destroy();
+
+      this.chartPygInstance = new Chart(canvasPyg.getContext('2d'), {
         data: {
           labels: cData.labels,
           datasets: [
             {
-              label: 'Ingresos',
-              type: 'bar',
-              data: cData.ingresos,
-              backgroundColor: gradientIngresos,
-              borderColor: '#87D8C2',
-              borderWidth: 1,
-              borderRadius: 8,
-              borderSkipped: false,
-              barThickness: 18,
-              maxBarThickness: 22,
-              order: 3,
-              yAxisID: 'money'
+              label: 'Ingresos', type: 'bar', data: cData.ingresos,
+              backgroundColor: colors.teal, borderColor: colors.teal,
+              borderWidth: 0, borderRadius: 4, borderSkipped: false,
+              categoryPercentage: 0.68, barPercentage: 0.82,
+              maxBarThickness: 24, order: 3, yAxisID: 'money'
             },
             {
-              label: 'Gastos',
-              type: 'bar',
-              data: cData.gastos,
-              backgroundColor: gradientGastos,
-              borderColor: '#EF4444',
-              borderWidth: 1,
-              borderRadius: 8,
-              borderSkipped: false,
-              barThickness: 18,
-              maxBarThickness: 22,
-              order: 3,
-              yAxisID: 'money'
+              label: 'Gastos', type: 'bar', data: cData.gastos,
+              backgroundColor: colors.coral, borderColor: colors.coral,
+              borderWidth: 0, borderRadius: 4, borderSkipped: false,
+              categoryPercentage: 0.68, barPercentage: 0.82,
+              maxBarThickness: 24, order: 3, yAxisID: 'money'
             },
             {
-              label: '% Utilidad',
-              type: 'line',
-              data: cData.utilidadPct,
-              borderColor: '#56AED9',
-              backgroundColor: gradientUtilidad,
-              pointBackgroundColor: '#FFFFFF',
-              pointBorderColor: '#56AED9',
-              pointBorderWidth: 2,
-              pointRadius: 3.5,
-              pointHoverRadius: 5,
-              borderWidth: 2.5,
-              tension: 0.42,
-              fill: true,
-              order: 1,
-              yAxisID: 'percent'
+              label: '% Utilidad', type: 'line', data: cData.utilidadPct,
+              borderColor: colors.blue, backgroundColor: colors.blue,
+              pointBackgroundColor: '#FFFFFF', pointBorderColor: colors.blue,
+              pointBorderWidth: 2, pointRadius: mobile ? 0 : 2,
+              pointHoverRadius: 5, borderWidth: 2.5, tension: 0.28,
+              fill: false, order: 1, yAxisID: 'percent'
             }
           ]
         },
         options: {
-          ...baseChartOptions,
+          ...base,
           plugins: {
-            ...baseChartOptions.plugins,
+            ...base.plugins,
             tooltip: {
-              ...baseChartOptions.plugins.tooltip,
+              ...base.plugins.tooltip,
               callbacks: {
-                label: function(context) {
-                  const label = context.dataset.label || '';
-                  const value = context.parsed.y || 0;
-
-                  if (context.dataset.yAxisID === 'percent') {
-                    return label + ': ' + value.toFixed(1) + '%';
-                  }
-
-                  return label + ': ' + moneyFormatter(value);
+                label(context) {
+                  const v = context.parsed.y ?? 0;
+                  return context.dataset.label + ': ' +
+                    (context.dataset.yAxisID === 'percent' ? v.toFixed(1) + '%' : money(v));
                 }
               }
             }
           },
           scales: {
-            x: {
-              grid: {
-                display: false
-              },
-              ticks: {
-                color: '#6B7280',
-                maxRotation: 35,
-                minRotation: 35,
-                font: {
-                  size: 10,
-                  weight: '700'
-                }
-              },
-              border: {
-                display: false
-              }
-            },
-            money: {
-              type: 'linear',
-              position: 'right',
-              beginAtZero: true,
-              grid: {
-                color: 'rgba(1, 51, 98, 0.08)',
-                drawBorder: false
-              },
-              border: {
-                display: false
-              },
-              ticks: {
-                color: '#6B7280',
-                padding: 8,
-                font: {
-                  size: 10,
-                  weight: '700'
-                },
-                callback: compactFormatter
-              }
-            },
-            percent: {
-              type: 'linear',
-              position: 'left',
-              grid: {
-                drawOnChartArea: false,
-                drawBorder: false
-              },
-              border: {
-                display: false
-              },
-              ticks: {
-                color: '#6B7280',
-                padding: 8,
-                font: {
-                  size: 10,
-                  weight: '700'
-                },
-                callback: function(value) {
-                  return value + '%';
-                }
-              }
-            }
+            x: xAxis(),
+            money: { ...valueAxis('right'), beginAtZero: true },
+            percent: valueAxis('left', false, v => v + '%')
           }
         }
       });
 
-      this.chartPasivosInstance = new Chart(ctxPasivos, {
+      this.chartPasivosInstance = new Chart(canvasPasivos.getContext('2d'), {
         data: {
           labels: cData.labels,
           datasets: [
             {
-              label: 'Movimiento del Mes',
-              type: 'bar',
-              data: cData.pasivosMov,
-              backgroundColor: gradientMovimiento,
-              borderColor: 'rgba(1, 51, 98, 0.18)',
-              borderWidth: 1,
-              borderRadius: 8,
-              borderSkipped: false,
-              barThickness: 20,
-              maxBarThickness: 24,
-              order: 3,
-              yAxisID: 'movement'
+              label: 'Movimiento del Mes', type: 'bar', data: cData.pasivosMov,
+              backgroundColor: 'rgba(147,167,186,.58)', borderWidth: 0,
+              borderRadius: 4, borderSkipped: false,
+              categoryPercentage: 0.65, barPercentage: 0.8,
+              maxBarThickness: 24, order: 3, yAxisID: 'movement'
             },
             {
-              label: 'Saldo Acumulado',
-              type: 'line',
-              data: cData.pasivosSaldo,
-              borderColor: '#F97316',
-              backgroundColor: gradientPasivos,
-              pointBackgroundColor: '#FFFFFF',
-              pointBorderColor: '#F97316',
-              pointBorderWidth: 2,
-              pointRadius: 3.5,
-              pointHoverRadius: 5,
-              borderWidth: 2.5,
-              tension: 0.38,
-              fill: true,
-              order: 1,
-              yAxisID: 'balance'
+              label: 'Saldo Acumulado', type: 'line', data: cData.pasivosSaldo,
+              borderColor: colors.orange, backgroundColor: colors.orange,
+              pointBackgroundColor: '#FFFFFF', pointBorderColor: colors.orange,
+              pointBorderWidth: 2, pointRadius: mobile ? 0 : 2,
+              pointHoverRadius: 5, borderWidth: 3, tension: 0.25,
+              fill: false, order: 1, yAxisID: 'balance'
             }
           ]
         },
         options: {
-          ...baseChartOptions,
+          ...base,
           plugins: {
-            ...baseChartOptions.plugins,
+            ...base.plugins,
             tooltip: {
-              ...baseChartOptions.plugins.tooltip,
+              ...base.plugins.tooltip,
               callbacks: {
-                label: function(context) {
-                  const label = context.dataset.label || '';
-                  const value = context.parsed.y || 0;
-                  return label + ': ' + moneyFormatter(value);
+                label(context) {
+                  return context.dataset.label + ': ' + money(context.parsed.y ?? 0);
                 }
               }
             }
           },
           scales: {
-            x: {
-              grid: {
-                display: false
-              },
-              ticks: {
-                color: '#6B7280',
-                maxRotation: 35,
-                minRotation: 35,
-                font: {
-                  size: 10,
-                  weight: '700'
-                }
-              },
-              border: {
-                display: false
-              }
-            },
-            balance: {
-              type: 'linear',
-              position: 'left',
-              grid: {
-                color: 'rgba(1, 51, 98, 0.08)',
-                drawBorder: false
-              },
-              border: {
-                display: false
-              },
-              ticks: {
-                color: '#6B7280',
-                padding: 8,
-                font: {
-                  size: 10,
-                  weight: '700'
-                },
-                callback: compactFormatter
-              }
-            },
-            movement: {
-              type: 'linear',
-              position: 'right',
-              grid: {
-                drawOnChartArea: false,
-                drawBorder: false
-              },
-              border: {
-                display: false
-              },
-              ticks: {
-                color: '#6B7280',
-                padding: 8,
-                font: {
-                  size: 10,
-                  weight: '700'
-                },
-                callback: compactFormatter
-              }
-            }
+            x: xAxis(),
+            balance: valueAxis('left'),
+            movement: valueAxis('right', false)
           }
         }
       });
     },
+
+
 
     // =====================================================
     // CARGA CENTRALIZADA POR VISTA
@@ -3635,12 +3438,8 @@ new Vue({
         this.dbLista = response.data.items || [];
         this.dashboardHistoryReady = true;
 
-        // Esperar a que Vue actualice la interfaz.
-        await this.$nextTick();
-
-        if (this.activeView === 'dashboard') {
-          this.renderCharts();
-        }
+        // Los canvas se crean cuando finaliza isLoadingList.
+        // El renderizado se realizará en finally.
 
         const tiempoTotal = performance.now() - inicio;
 
@@ -3670,6 +3469,16 @@ new Vue({
       } finally {
         this.isLoadingList = false;
         this.isSyncingBackground = false;
+
+        // Esperar a que Vue monte las gráficas.
+        await this.$nextTick();
+
+        if (
+          this.activeView === 'dashboard' &&
+          this.dashboardHistoryReady
+        ) {
+          this.renderCharts();
+        }
       }
     },
 
