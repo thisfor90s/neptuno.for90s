@@ -273,6 +273,7 @@ new Vue({
 
     chartPygInstance: null,
     chartPasivosInstance: null,
+    dashboardSvgFocus: null,
 
     inactivityTimeoutMs: 5 * 60 * 1000,
     inactivityTimer: null,
@@ -949,6 +950,160 @@ new Vue({
       });
 
       return results;
+    },
+
+    // ADAPTADOR VISUAL SVG: no modifica ninguna métrica financiera.
+    dashboardSvg() {
+      const d = this.dashboardChartsData;
+      const bounds = (values, includeZero = true) => {
+        const clean = values.filter(Number.isFinite);
+        let lo = Math.min(...clean, includeZero ? 0 : Infinity);
+        let hi = Math.max(...clean, includeZero ? 0 : -Infinity);
+        if (!Number.isFinite(lo) || !Number.isFinite(hi)) { lo = 0; hi = 1; }
+        if (lo === hi) { const pad = Math.max(1, Math.abs(lo) * .1); lo -= pad; hi += pad; }
+        const pad = (hi - lo) * .08;
+        return { min: lo - pad, max: hi + pad };
+      };
+      const scale = (value, range, top = 18, bottom = 230) =>
+        bottom - (value - range.min) / (range.max - range.min) * (bottom - top);
+      const ticks = (range, top = 18, bottom = 230) =>
+        Array.from({ length: 5 }, (_, i) => {
+          const value = range.min + (range.max - range.min) * i / 4;
+          return { value, y: scale(value, range, top, bottom) };
+        });
+      const path = points => points.map((p, i) => (i ? 'L ' : 'M ') + p.x.toFixed(2) + ' ' + p.y.toFixed(2)).join(' ');
+      const moneyRange = bounds([...d.ingresos, ...d.gastos]);
+      const moneyZero = scale(0, moneyRange);
+      const money = {
+        ticks: ticks(moneyRange),
+        points: d.labels.map((label, i) => {
+          const x = 91 + i * (590 / 11);
+          const ingY0 = scale(d.ingresos[i], moneyRange);
+          const gasY0 = scale(d.gastos[i], moneyRange);
+          return { label, x, ingresos: d.ingresos[i], gastos: d.gastos[i],
+            ingY: Math.min(moneyZero, ingY0), ingH: Math.max(0, Math.abs(moneyZero - ingY0)),
+            gasY: Math.min(moneyZero, gasY0), gasH: Math.max(0, Math.abs(moneyZero - gasY0)) };
+        })
+      };
+      const marginRange = bounds(d.utilidadPct);
+      const marginPoints = d.labels.map((label, i) => ({ label, x: 91 + i * (590 / 11),
+        value: d.utilidadPct[i], y: scale(d.utilidadPct[i], marginRange) }));
+      const margin = { ticks: ticks(marginRange), points: marginPoints, path: path(marginPoints) };
+      const balanceRange = bounds(d.pasivosSaldo);
+      const movementRange = bounds(d.pasivosMov);
+      const movementZero = scale(0, movementRange, 18, 242);
+      const debtPoints = d.labels.map((label, i) => {
+        const x = 103 + i * (690 / 11);
+        const mov = d.pasivosMov[i], saldo = d.pasivosSaldo[i];
+        const movEnd = scale(mov, movementRange, 18, 242);
+        return { label, x, mov, saldo, movY: Math.min(movementZero, movEnd),
+          movH: Math.abs(movementZero - movEnd), saldoY: scale(saldo, balanceRange, 18, 242) };
+      });
+      return { money, margin, debt: { points: debtPoints, path: path(debtPoints.map(p => ({ x: p.x, y: p.saldoY }))),
+        zeroY: movementZero, balanceTicks: ticks(balanceRange, 18, 242),
+        movementTicks: ticks(movementRange, 18, 242) } };
+    },
+
+    // V3: Geometría SVG y DSR mensual. Solo presentación; no modifica métricas financieras existentes.
+    dashboardSvgV3() {
+      const d = this.dashboardChartsData;
+      const labels = d.labels;
+      const minmax = (values, zero = true) => {
+        const finite = values.filter(Number.isFinite);
+        let lo = Math.min(...finite, zero ? 0 : Infinity);
+        let hi = Math.max(...finite, zero ? 0 : -Infinity);
+        if (!Number.isFinite(lo) || !Number.isFinite(hi)) { lo = 0; hi = 1; }
+        if (lo === hi) { lo -= Math.max(1, Math.abs(lo) * .1); hi += Math.max(1, Math.abs(hi) * .1); }
+        const pad = (hi - lo) * .08;
+        return {lo:lo-pad, hi:hi+pad};
+      };
+      const y = (v, r, top = 38, bottom = 300) => bottom - (v-r.lo)/(r.hi-r.lo)*(bottom-top);
+      const ticks = (r, top = 38, bottom = 300) => Array.from({length:5}, (_,i) => {
+        const value = r.lo+(r.hi-r.lo)*i/4;
+        return {value, y:y(value,r,top,bottom)};
+      });
+      const path = points => {
+        if (!points.length) return '';
+        const fmt = n => n.toFixed(2);
+        let d = `M ${fmt(points[0].x)} ${fmt(points[0].y)}`;
+        if (points.length === 1) return d;
+        const slope = (a,b) => {
+          const dx = b.x-a.x;
+          return dx ? (b.y-a.y)/dx : 0;
+        };
+        for (let i=0;i<points.length-1;i++) {
+          const a=points[i], b=points[i+1];
+          const prev=points[Math.max(0,i-1)];
+          const next=points[Math.min(points.length-1,i+2)];
+          const dx=b.x-a.x;
+          const segment=slope(a,b);
+          let m0=i===0 ? segment : slope(prev,b);
+          let m1=i===points.length-2 ? segment : slope(a,next);
+          if (i>0 && slope(prev,a)*segment<=0) m0=0;
+          if (i+2<points.length && segment*slope(b,next)<=0) m1=0;
+          if (segment===0) { m0=0; m1=0; }
+          else {
+            // Limitar tangentes para no generar máximos espurios.
+            m0=Math.sign(segment)*Math.min(Math.max(0,m0*Math.sign(segment)),3*Math.abs(segment));
+            m1=Math.sign(segment)*Math.min(Math.max(0,m1*Math.sign(segment)),3*Math.abs(segment));
+          }
+          const c=dx/3;
+          d+=` C ${fmt(a.x+c)} ${fmt(a.y+m0*c)}, ${fmt(b.x-c)} ${fmt(b.y-m1*c)}, ${fmt(b.x)} ${fmt(b.y)}`;
+        }
+        return d;
+      };
+      const xAt = i => 89+i*(740/11);
+      const moneyRange = minmax([...d.ingresos,...d.gastos]);
+      const moneyZero = y(0,moneyRange,48,300);
+      const marginRange = minmax(d.utilidadPct);
+      const economicPoints = labels.map((label,i) => {
+        const ingresos = d.ingresos[i], gastos = d.gastos[i], margen = d.utilidadPct[i];
+        const backIsIncome = ingresos >= gastos;
+        const backValue = backIsIncome ? ingresos : gastos;
+        const frontValue = backIsIncome ? gastos : ingresos;
+        const backTop = y(backValue,moneyRange,48,300);
+        const frontTop = y(frontValue,moneyRange,48,300);
+        const backY = Math.min(backTop,moneyZero), frontY = Math.min(frontTop,moneyZero);
+        const marginY = y(margen,marginRange,50,130); // Banda superior propia, evita confundir % con COP.
+        return {label,x:xAt(i),ingresos,gastos,margen,utilidad:ingresos-gastos,
+          backValue,frontValue,backY,frontY,backH:Math.abs(moneyZero-backTop),frontH:Math.abs(moneyZero-frontTop),
+          backColor:backIsIncome?'#0FA49A':'#E35D65',frontColor:backIsIncome?'#F3BFC3':'#B8E5E1',
+          frontTextColor:backIsIncome?'#B63E47':'#087C76',
+          backLabelY:Math.max(29,backY-17),frontLabelY:Math.max(46,frontY+14),
+          marginY,marginLabelY:Math.max(27,marginY-25),x:xAt(i)};
+      });
+      // DSR mensual: misma regla que dashboardData(): pagos negativos de Pasivo / Ingresos del mes.
+      const servicio = new Array(12).fill(0);
+      const today = new Date();
+      const first = new Date(today.getFullYear(),today.getMonth()-11,1);
+      this.dbLista.forEach(t => {
+        if (t.estado === 'n' || t.tipo !== 'Pasivo') return;
+        const val = Number(t.valor)||0;
+        if (val >= 0) return;
+        const raw = t.fecha_registration || t.fecha_registro;
+        if (!raw) return;
+        const date = new Date(raw+'T00:00:00');
+        if (!Number.isFinite(date.getTime()) || date < first) return;
+        const idx = (date.getFullYear()-first.getFullYear())*12+date.getMonth()-first.getMonth();
+        if (idx>=0 && idx<12) servicio[idx] += Math.abs(val);
+      });
+      const saldoRange = minmax(d.pasivosSaldo,false);
+      const movRange = minmax(d.pasivosMov);
+      const movZero = y(0,movRange,62,300);
+      const debtPoints = labels.map((label,i) => {
+        const mov = d.pasivosMov[i], saldo = d.pasivosSaldo[i], movEnd = y(mov,movRange,62,300);
+        const saldoY = y(saldo,saldoRange,62,300);
+        const dsr = d.ingresos[i] ? servicio[i]/d.ingresos[i]*100 : 0;
+        return {label,x:xAt(i),mov,saldo,servicio:servicio[i],dsr,saldoY,
+          dsrLabelY:Math.max(8,Math.min(302,saldoY-28)),
+          movY:Math.min(movZero,movEnd),movH:Math.abs(movZero-movEnd),
+          movLabelY:mov>=0?Math.max(45,movEnd-8):Math.min(315,movEnd+14),
+          saldoLabelY:Math.max(48,saldoY-11)};
+      });
+      return {economic:{points:economicPoints,moneyTicks:ticks(moneyRange,48,300),zeroY:moneyZero,
+        marginPath:path(economicPoints.map(p=>({x:p.x,y:p.marginY})))},
+        debt:{points:debtPoints,balanceTicks:ticks(saldoRange,62,300),zeroY:movZero,
+          saldoPath:path(debtPoints.map(p=>({x:p.x,y:p.saldoY})))}};
     },
 
     dashboardChartsData() {
@@ -1897,9 +2052,25 @@ new Vue({
       if (nv === 'dashboard') {
         this.$nextTick(() => {
           this.renderCharts();
+          this.dashboardScrollChartsRight();
         });
       }
     },
+
+
+    isLoadingList: function(nuevo, anterior) {
+      if (
+        anterior === true &&
+        nuevo === false &&
+        this.activeView === 'dashboard' &&
+        this.dashboardHistoryReady
+      ) {
+        this.$nextTick(() => {
+          this.dashboardScrollChartsRight();
+        });
+      }
+    },
+
 
 
     dbLista: {
@@ -3516,6 +3687,7 @@ new Vue({
           this.dashboardHistoryReady
         ) {
           this.renderCharts();
+          this.dashboardScrollChartsRight();
         }
       }
     },
@@ -4645,5 +4817,61 @@ new Vue({
 
       return num > 0 ? 'text-tema-4' : 'text-red-500';
     },
+
+    dashboardSvgToggle(chart, index) {
+      const current = this.dashboardSvgFocus;
+      this.dashboardSvgFocus = current && current.chart === chart && current.index === index
+        ? null : { chart, index };
+    },
+    dashboardSvgCompact(value) {
+      const abs = Math.abs(value);
+      const digits = abs >= 1e9 ? 1e9 : abs >= 1e6 ? 1e6 : abs >= 1e3 ? 1e3 : 1;
+      const suffix = digits === 1e9 ? ' mil M' : digits === 1e6 ? ' M' : digits === 1e3 ? ' mil' : '';
+      return new Intl.NumberFormat('es-CO', { maximumFractionDigits: 1 }).format(value / digits) + suffix;
+    },
+
+    
+    
+    dashboardScrollChartsRight() {
+      if (this.activeView !== 'dashboard') return;
+      if (typeof window === 'undefined') return;
+
+      this.$nextTick(() => {
+        let intentos = 0;
+        const maxIntentos = 12;
+
+        const posicionar = () => {
+          if (this.activeView !== 'dashboard' || this.isLoadingList) return;
+
+          const refs = [
+            this.$refs.dashboardEconomicScroll,
+            this.$refs.dashboardDebtScroll
+          ];
+
+          refs.forEach(el => {
+            if (!el || !el.isConnected || !el.getClientRects().length) return;
+
+            const maximo = Math.max(
+              0,
+              el.scrollWidth - el.clientWidth
+            );
+
+            if (maximo > 0) {
+              el.scrollLeft = maximo;
+            }
+          });
+
+          intentos++;
+
+          if (intentos < maxIntentos) {
+            window.requestAnimationFrame(posicionar);
+          }
+        };
+
+        window.requestAnimationFrame(posicionar);
+      });
+    },
+
+
   }
 });

@@ -169,277 +169,224 @@
 
 
         <div v-else class="pb-10">
-            <!-- BLOQUE 1: TARJETAS KPI -->
-
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
-                
-                <!-- INGRESOS -->
-                <div class="bg-white rounded-xl p-2.5 border border-gray-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow border-l-[3px] border-l-tema-4">
-                    <span class="text-[9px] font-black uppercase text-gray-400 tracking-wider mb-0.5">Ingresos Totales</span>
-                    <span class="text-lg font-black text-tema-3 leading-none mb-1" :class="dashboardData.ingresos.curr > 0 ? 'text-tema-4' : ''">$ {{ formatInput(dashboardData.ingresos.curr) }}</span>
-                    <div class="flex items-center text-[9px] font-bold" :class="getVarColor('ingreso', dashboardData.ingresos.diff)">
-                        <span class="material-symbols-outlined text-[11px] mr-0.5">{{ getVarIcon(dashboardData.ingresos.diff) }}</span>
-                        <span class="tracking-tighter">{{ formatAbs(dashboardData.ingresos.diff) }} ({{ formatPct(dashboardData.ingresos.pct) }})</span>
-                    </div>
-                    <div class="text-[7px] text-gray-400 mt-1 uppercase tracking-widest truncate">{{ dashboardData.compareText }}</div>
-                </div>
-
-                <!-- GASTOS -->
-                <div class="bg-white rounded-xl p-2.5 border border-gray-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow border-l-[3px] border-l-red-500">
-                    <span class="text-[9px] font-black uppercase text-gray-400 tracking-wider mb-0.5">Gastos Totales</span>
-                    <span class="text-lg font-black text-tema-3 leading-none mb-1" :class="dashboardData.gastos.curr > 0 ? 'text-red-500' : ''">$ {{ formatInput(dashboardData.gastos.curr) }}</span>
-                    <div class="flex items-center text-[9px] font-bold" :class="getVarColor('gasto', dashboardData.gastos.diff)">
-                        <span class="material-symbols-outlined text-[11px] mr-0.5">{{ getVarIcon(dashboardData.gastos.diff) }}</span>
-                        <span class="tracking-tighter">{{ formatAbs(dashboardData.gastos.diff) }} ({{ formatPct(dashboardData.gastos.pct) }})</span>
-                    </div>
-                    <div class="text-[7px] text-gray-400 mt-1 uppercase tracking-widest truncate">{{ dashboardData.compareText }}</div>
-                </div>
-
-                <!-- UTILIDAD -->
-                <!-- UTILIDAD -->
-                <div class="bg-white rounded-xl p-2.5 border border-gray-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow border-l-[3px] border-l-blue-400">
-
-                    <div class="flex justify-between items-start mb-1">
-                        <span class="text-[9px] font-black uppercase text-gray-400 tracking-wider">
-                          Utilidad
-                        </span>
-
-                        <span class="text-[7px] font-black bg-tema-bg px-1.5 py-0.5 rounded uppercase tracking-wider text-gray-400">
-                          Margen
-                        </span>
-                    </div>
-
-                    <!-- % DE UTILIDAD / MARGEN MÁS VISIBLE -->
-                    <div class="flex items-baseline gap-1 mb-0.5">
-                      <span
-                        class="text-[23px] font-black leading-none tracking-tight"
-                        :class="dashboardData.utilidad.margin >= 0 ? 'text-tema-1' : 'text-red-500'">
-                        {{ formatPct(dashboardData.utilidad.margin) }}
-                      </span>
-
-                      <span
-                        class="text-[9px] font-black uppercase tracking-widest"
-                        :class="dashboardData.utilidad.margin >= 0 ? 'text-tema-1' : 'text-red-500'">
-                        MG
-                      </span>
-                    </div>
-
-                    <!-- VALOR NETO MÁS PEQUEÑO -->
-                    <div class="flex items-center justify-between mb-1">
-                      <span class="text-[7px] font-black uppercase text-gray-400 tracking-wider">
-                        Neto
-                      </span>
-
-                      <span
-                        class="text-[12px] font-black leading-none"
-                        :class="dashboardData.utilidad.curr > 0 ? 'text-tema-4' : (dashboardData.utilidad.curr < 0 ? 'text-red-500' : 'text-gray-400')">
-                        $ {{ formatInput(dashboardData.utilidad.curr) }}
-                      </span>
-                    </div>
-
-                    <div class="flex items-center text-[9px] font-bold" :class="getVarColor('ingreso', dashboardData.utilidad.diff)">
-                        <span class="material-symbols-outlined text-[11px] mr-0.5">
-                          {{ getVarIcon(dashboardData.utilidad.diff) }}
-                        </span>
-                        <span class="tracking-tighter">
-                          {{ formatAbs(dashboardData.utilidad.diff) }} ({{ formatPct(dashboardData.utilidad.pct) }})
-                        </span>
-                    </div>
-
-                    <div class="text-[7px] text-gray-400 mt-1 uppercase tracking-widest truncate">
-                      {{ dashboardData.compareText }}
-                    </div>
-                </div>
-
-                <!-- DSR (DEUDA/INGRESO) -->
-                <div class="bg-white rounded-xl p-2.5 border border-gray-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow border-l-[3px] border-l-purple-500">
-                    <span class="text-[9px] font-black uppercase text-gray-400 tracking-wider mb-0.5">DSR (Deuda/Ingreso)</span>
-                    <span class="text-lg font-black text-purple-600 leading-none mb-1">{{ formatPct(dashboardData.dsr.curr) }}</span>
-                    <div class="flex items-center text-[9px] font-bold" :class="getVarColor('gasto', dashboardData.dsr.diff)">
-                        <span class="material-symbols-outlined text-[11px] mr-0.5">{{ getVarIcon(dashboardData.gastos.diff) }}</span>
-                        <span class="tracking-tighter">{{ dashboardData.dsr.diff > 0 ? '+' : '' }}{{ dashboardData.dsr.diff.toFixed(1) }} pts</span>
-                    </div>
-                    <div class="text-[7px] text-gray-400 mt-1 uppercase tracking-widest truncate">{{ dashboardData.compareText }}</div>
-                </div>
-
-                <!-- ACTIVOS (SOLO AHORRO/INVERSIÓN) -->
-                <div class="bg-white rounded-xl p-2.5 border border-gray-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow border-l-[3px] border-l-tema-5">
-                    <span class="text-[9px] font-black uppercase text-gray-400 tracking-wider mb-0.5">Saldo Ahorro / Inv.</span>
-                    <span class="text-lg font-black text-tema-3 leading-none mb-1" :class="dashboardData.activos.curr > 0 ? 'text-tema-5' : ''">$ {{ formatInput(dashboardData.activos.curr) }}</span>
-                    <div class="flex items-center text-[9px] font-bold" :class="getVarColor('activo', dashboardData.activos.diff)">
-                        <span class="material-symbols-outlined text-[11px] mr-0.5">{{ getVarIcon(dashboardData.activos.diff) }}</span>
-                        <span class="tracking-tighter">{{ formatAbs(dashboardData.activos.diff) }} ({{ formatPct(dashboardData.activos.pct) }})</span>
-                    </div>
-                    <div class="text-[7px] text-gray-400 mt-1 uppercase tracking-widest truncate">{{ dashboardData.compareText }}</div>
-                </div>
-
-                <!-- PASIVOS -->
-                <div class="bg-white rounded-xl p-2.5 border border-gray-200 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow border-l-[3px] border-l-orange-500">
-                    <span class="text-[9px] font-black uppercase text-gray-400 tracking-wider mb-0.5">Saldo Pasivos</span>
-                    <span class="text-lg font-black text-tema-3 leading-none mb-1" :class="dashboardData.pasivos.curr > 0 ? 'text-orange-500' : ''">$ {{ formatInput(dashboardData.pasivos.curr) }}</span>
-                    <div class="flex items-center text-[9px] font-bold" :class="getVarColor('pasivo', dashboardData.pasivos.diff)">
-                        <span class="material-symbols-outlined text-[11px] mr-0.5">{{ getVarIcon(dashboardData.pasivos.diff) }}</span>
-                        <span class="tracking-tighter">{{ formatAbs(dashboardData.pasivos.diff) }} ({{ formatPct(dashboardData.pasivos.pct) }})</span>
-                    </div>
-                    <div class="text-[7px] text-gray-400 mt-1 uppercase tracking-widest truncate">{{ dashboardData.compareText }}</div>
-                </div>
+            <!-- BLOQUE 1: RESUMEN EJECUTIVO (FLUJOS DEL PERIODO) -->
+            <div class="mb-2 flex items-center justify-between gap-2 flex-wrap">
+                <h3 class="text-[11px] font-black text-tema-1 uppercase tracking-wider">Resultado económico</h3>
+                <span class="text-[10px] text-gray-500 font-semibold">Durante el período seleccionado</span>
             </div>
-            
-            <!-- BLOQUE 2: TABLAS DE DETALLE -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-                
-                <!-- TABLA GASTOS -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
-                    <div class="bg-red-50 border-b border-red-100 px-3 py-2 flex justify-between items-center">
-                        <h3 class="text-[10px] font-black text-red-600 uppercase tracking-widest flex items-center"><span class="material-symbols-outlined text-[14px] mr-1">money_off</span> Gastos por Grupo</h3>
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-2">
+                <article class="min-w-0 bg-white rounded-xl border border-gray-200 border-t-[3px] border-t-green-500 shadow-sm px-2.5 py-1.5 sm:px-3 sm:py-1.5 flex flex-col gap-0.5">
+                    <h4 class="text-[9px] sm:text-[10px] font-black uppercase tracking-wide text-gray-500">Ingresos</h4>
+                    <div class="text-[clamp(13px,1.25vw,18px)] leading-tight font-black text-tema-1 break-words">$ {{ formatInput(dashboardData.ingresos.curr) }}</div>
+                    <div class="flex items-start gap-1 text-[10px] font-bold" :class="getVarColor('ingreso', dashboardData.ingresos.diff)">
+                        <span class="material-symbols-outlined text-[14px] shrink-0">{{ getVarIcon(dashboardData.ingresos.diff) }}</span>
+                        <span class="break-words">{{ formatAbs(dashboardData.ingresos.diff) }} ({{ formatPct(dashboardData.ingresos.pct) }})</span>
                     </div>
-                    <div class="px-2 py-1.5 bg-gray-50/80 border-b border-gray-100 flex text-[8px] font-black text-gray-400 uppercase tracking-widest">
-                        <div class="w-1/3 pl-1">Grupo</div>
-                        <div class="w-1/4 text-right">Media (Mes)</div>
-                        <div class="w-1/4 text-right pr-2">Total</div>
-                        <div class="w-1/6 text-right pr-1">% Tipo</div>
+                    <p class="text-[9px] text-gray-500 leading-snug hidden xl:block">Flujo del período · {{ dashboardData.compareText }}</p>
+                </article>
+                <article class="min-w-0 bg-white rounded-xl border border-gray-200 border-t-[3px] border-t-red-500 shadow-sm px-2.5 py-1.5 sm:px-3 sm:py-1.5 flex flex-col gap-0.5">
+                    <h4 class="text-[9px] sm:text-[10px] font-black uppercase tracking-wide text-gray-500">Gastos</h4>
+                    <div class="text-[clamp(13px,1.25vw,18px)] leading-tight font-black text-tema-1 break-words">$ {{ formatInput(dashboardData.gastos.curr) }}</div>
+                    <div class="flex items-start gap-1 text-[10px] font-bold" :class="getVarColor('gasto', dashboardData.gastos.diff)">
+                        <span class="material-symbols-outlined text-[14px] shrink-0">{{ getVarIcon(dashboardData.gastos.diff) }}</span>
+                        <span class="break-words">{{ formatAbs(dashboardData.gastos.diff) }} ({{ formatPct(dashboardData.gastos.pct) }})</span>
                     </div>
-                    <div class="p-1 overflow-y-auto max-h-56 text-[10px]">
-                        <div v-for="row in dashboardTables.gastos" :key="row.label" class="flex items-center py-1.5 border-b border-gray-50 last:border-0 hover:bg-gray-50 px-2">
-                            <span class="font-bold text-gray-600 truncate pr-2 w-1/3" :title="row.label">{{ row.label }}</span>
-                            <span class="font-mono text-gray-500 text-right w-1/4 pr-2">$ {{ formatInput(row.promedio) }}</span>
-                            <div class="flex flex-col items-end w-1/4 pr-2">
-                                <span class="font-black text-tema-3">$ {{ formatInput(row.curr) }}</span>
-                                <span class="text-[8px] font-bold flex items-center" :class="getVarColor('gasto', row.diff)">
-                                    <span class="material-symbols-outlined text-[10px] mr-0.5">{{ getVarIcon(row.diff) }}</span>
-                                    {{ formatAbs(row.diff) }} ({{ formatPct(row.pct) }})
-                                </span>
-                            </div>
-                            <div class="w-1/6 flex items-center justify-end gap-1.5">
-                                <span class="font-bold text-[9px] text-gray-500 w-8 text-right">{{ row.pctTotal.toFixed(1) }}%</span>
-                                <div class="w-10 h-1.5 bg-gray-200 rounded-full overflow-hidden hidden sm:block">
-                                    <div class="h-full rounded-full bg-red-400" :style="{ width: Math.min(row.pctTotal, 100) + '%' }"></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div v-if="dashboardTables.gastos.length === 0" class="text-center text-gray-400 italic py-4">Sin datos</div>
+                    <p class="text-[9px] text-gray-500 leading-snug hidden xl:block">Flujo del período · {{ dashboardData.compareText }}</p>
+                </article>
+                <article class="min-w-0 bg-white rounded-xl border border-gray-200 border-t-[3px] border-t-blue-500 shadow-sm px-2.5 py-1.5 sm:px-3 sm:py-1.5 flex flex-col gap-0.5">
+                    <h4 class="text-[9px] sm:text-[10px] font-black uppercase tracking-wide text-gray-500">Utilidad</h4>
+                    <div class="text-[clamp(13px,1.25vw,18px)] leading-tight font-black text-tema-1 break-words">$ {{ formatInput(dashboardData.utilidad.curr) }}</div>
+                    <div class="flex items-start gap-1 text-[10px] font-bold" :class="getVarColor('ingreso', dashboardData.utilidad.diff)">
+                        <span class="material-symbols-outlined text-[14px] shrink-0">{{ getVarIcon(dashboardData.utilidad.diff) }}</span>
+                        <span class="break-words">{{ formatAbs(dashboardData.utilidad.diff) }} ({{ formatPct(dashboardData.utilidad.pct) }})</span>
                     </div>
-                </div>
-
-                <!-- TABLA INGRESOS -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
-                    <div class="bg-green-50 border-b border-green-100 px-3 py-2 flex justify-between items-center">
-                        <h3 class="text-[10px] font-black text-green-600 uppercase tracking-widest flex items-center"><span class="material-symbols-outlined text-[14px] mr-1">attach_money</span> Ingresos por Categoría</h3>
+                    <p class="text-[9px] text-gray-500 leading-snug hidden xl:block">Flujo del período · {{ dashboardData.compareText }}</p>
+                </article>
+                <article class="min-w-0 bg-white rounded-xl border border-gray-200 border-t-[3px] border-t-blue-400 shadow-sm px-2.5 py-1.5 sm:px-3 sm:py-1.5 flex flex-col gap-0.5">
+                    <h4 class="text-[9px] sm:text-[10px] font-black uppercase tracking-wide text-gray-500">Margen</h4>
+                    <div class="text-[clamp(13px,1.25vw,18px)] leading-tight font-black break-words" :class="dashboardData.utilidad.margin < 0 ? 'text-red-500' : 'text-tema-1'">{{ formatPct(dashboardData.utilidad.margin) }}</div>
+                    <p class="text-[10px] font-semibold text-gray-500">Utilidad / Ingresos</p>
+                    <p class="text-[9px] text-gray-500 leading-snug hidden xl:block">Durante el período seleccionado</p>
+                </article>
+            </div>
+            <!-- BLOQUE 1B: POSICION Y RIESGO -->
+            <div class="mb-2 flex items-center justify-between gap-2 flex-wrap">
+                <h3 class="text-[11px] font-black text-tema-1 uppercase tracking-wider">Posición y riesgo financiero</h3>
+                <span class="text-[10px] text-gray-500 font-semibold">Saldos al cierre y DSR del período</span>
+            </div>
+            <div class="grid grid-cols-2 lg:grid-cols-3 gap-2 mb-2">
+                <article class="min-w-0 bg-white rounded-xl border border-gray-200 border-t-[3px] border-t-cyan-500 shadow-sm px-2.5 py-1.5 sm:px-3 sm:py-1.5 flex flex-col gap-0.5">
+                    <h4 class="text-[9px] sm:text-[10px] font-black uppercase tracking-wide text-gray-500">Ahorro e inversión</h4>
+                    <div class="text-[clamp(13px,1.25vw,18px)] leading-tight font-black text-tema-1 break-words">$ {{ formatInput(dashboardData.activos.curr) }}</div>
+                    <div class="flex items-start gap-1 text-[10px] font-bold" :class="getVarColor('activo', dashboardData.activos.diff)">
+                        <span class="material-symbols-outlined text-[14px] shrink-0">{{ getVarIcon(dashboardData.activos.diff) }}</span>
+                        <span class="break-words">{{ formatAbs(dashboardData.activos.diff) }} ({{ formatPct(dashboardData.activos.pct) }})</span>
                     </div>
-                    <div class="px-2 py-1.5 bg-gray-50/80 border-b border-gray-100 flex text-[8px] font-black text-gray-400 uppercase tracking-widest">
-                        <div class="w-1/3 pl-1">Categoría</div>
-                        <div class="w-1/4 text-right">Media (Mes)</div>
-                        <div class="w-1/4 text-right pr-2">Total</div>
-                        <div class="w-1/6 text-right pr-1">% Tipo</div>
+                    <p class="text-[9px] text-gray-500 leading-snug hidden xl:block">Saldo acumulado al cierre · {{ dashboardData.compareText }}</p>
+                </article>
+                <article class="min-w-0 bg-white rounded-xl border border-gray-200 border-t-[3px] border-t-orange-500 shadow-sm px-2.5 py-1.5 sm:px-3 sm:py-1.5 flex flex-col gap-0.5">
+                    <h4 class="text-[9px] sm:text-[10px] font-black uppercase tracking-wide text-gray-500">Pasivos</h4>
+                    <div class="text-[clamp(13px,1.25vw,18px)] leading-tight font-black text-tema-1 break-words">$ {{ formatInput(dashboardData.pasivos.curr) }}</div>
+                    <div class="flex items-start gap-1 text-[10px] font-bold" :class="getVarColor('pasivo', dashboardData.pasivos.diff)">
+                        <span class="material-symbols-outlined text-[14px] shrink-0">{{ getVarIcon(dashboardData.pasivos.diff) }}</span>
+                        <span class="break-words">{{ formatAbs(dashboardData.pasivos.diff) }} ({{ formatPct(dashboardData.pasivos.pct) }})</span>
                     </div>
-                    <div class="p-1 overflow-y-auto max-h-56 text-[10px]">
-                        <div v-for="row in dashboardTables.ingresos" :key="row.label" class="flex items-center py-1.5 border-b border-gray-50 last:border-0 hover:bg-gray-50 px-2">
-                            <span class="font-bold text-gray-600 truncate pr-2 w-1/3" :title="row.label">{{ row.label }}</span>
-                            <span class="font-mono text-gray-500 text-right w-1/4 pr-2">$ {{ formatInput(row.promedio) }}</span>
-                            <div class="flex flex-col items-end w-1/4 pr-2">
-                                <span class="font-black text-tema-3">$ {{ formatInput(row.curr) }}</span>
-                                <span class="text-[8px] font-bold flex items-center" :class="getVarColor('ingreso', row.diff)">
-                                    <span class="material-symbols-outlined text-[10px] mr-0.5">{{ getVarIcon(row.diff) }}</span>
-                                    {{ formatAbs(row.diff) }} ({{ formatPct(row.pct) }})
-                                </span>
-                            </div>
-                            <div class="w-1/6 flex items-center justify-end gap-1.5">
-                                <span class="font-bold text-[9px] text-gray-500 w-8 text-right">{{ row.pctTotal.toFixed(1) }}%</span>
-                                <div class="w-10 h-1.5 bg-gray-200 rounded-full overflow-hidden hidden sm:block">
-                                    <div class="h-full rounded-full bg-green-400" :style="{ width: Math.min(row.pctTotal, 100) + '%' }"></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div v-if="dashboardTables.ingresos.length === 0" class="text-center text-gray-400 italic py-4">Sin datos</div>
+                    <p class="text-[9px] text-gray-500 leading-snug hidden xl:block">Saldo acumulado al cierre · {{ dashboardData.compareText }}</p>
+                </article>
+                <article class="min-w-0 col-span-2 lg:col-span-1 bg-white rounded-xl border border-gray-200 border-t-[3px] border-t-purple-500 shadow-sm px-2.5 py-1.5 sm:px-3 sm:py-1.5 flex flex-col gap-0.5">
+                    <h4 class="text-[9px] sm:text-[10px] font-black uppercase tracking-wide text-gray-500">DSR · Servicio de deuda / ingresos</h4>
+                    <div class="text-[clamp(13px,1.25vw,18px)] leading-tight font-black text-purple-600">{{ formatPct(dashboardData.dsr.curr) }}</div>
+                    <div class="flex items-start gap-1 text-[10px] font-bold" :class="getVarColor('gasto', dashboardData.dsr.diff)">
+                        <span class="material-symbols-outlined text-[14px] shrink-0">{{ getVarIcon(dashboardData.dsr.diff) }}</span>
+                        <span>{{ dashboardData.dsr.diff > 0 ? '+' : '' }}{{ dashboardData.dsr.diff.toFixed(1) }} pts</span>
                     </div>
-                </div>
-
-                <!-- TABLA ACTIVOS -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
-                    <div class="bg-blue-50 border-b border-blue-100 px-3 py-2 flex justify-between items-center">
-                        <h3 class="text-[10px] font-black text-tema-5 uppercase tracking-widest flex items-center"><span class="material-symbols-outlined text-[14px] mr-1">domain</span> Ahorro/Inv. por Tercero</h3>
-                    </div>
-                    <div class="px-2 py-1.5 bg-gray-50/80 border-b border-gray-100 flex text-[8px] font-black text-gray-400 uppercase tracking-widest">
-                        <div class="w-1/3 pl-1">Ahorro/Inv.</div>
-                        <div class="w-1/4 text-right">Media (Mes)</div>
-                        <div class="w-1/4 text-right pr-2">Total</div>
-                        <div class="w-1/6 text-right pr-1">% Tipo</div>
-                    </div>
-                    <div class="p-1 overflow-y-auto max-h-56 text-[10px]">
-                        <div v-for="row in dashboardTables.activos" :key="row.label" class="flex items-center py-1.5 border-b border-gray-50 last:border-0 hover:bg-gray-50 px-2">
-                            <span class="font-bold text-gray-600 truncate pr-2 w-1/3" :title="row.label">{{ row.label }}</span>
-                            <span class="font-mono text-gray-500 text-right w-1/4 pr-2">$ {{ formatInput(row.promedio) }}</span>
-                            <div class="flex flex-col items-end w-1/4 pr-2">
-                                <span class="font-black text-tema-3">$ {{ formatInput(row.curr) }}</span>
-                                <span class="text-[8px] font-bold flex items-center" :class="getVarColor('activo', row.diff)">
-                                    <span class="material-symbols-outlined text-[10px] mr-0.5">{{ getVarIcon(row.diff) }}</span>
-                                    {{ formatAbs(row.diff) }} ({{ formatPct(row.pct) }})
-                                </span>
-                            </div>
-                            <div class="w-1/6 flex items-center justify-end gap-1.5">
-                                <span class="font-bold text-[9px] text-gray-500 w-8 text-right">{{ row.pctTotal.toFixed(1) }}%</span>
-                                <div class="w-10 h-1.5 bg-gray-200 rounded-full overflow-hidden hidden sm:block">
-                                    <div class="h-full rounded-full bg-blue-400" :style="{ width: Math.min(row.pctTotal, 100) + '%' }"></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div v-if="dashboardTables.activos.length === 0" class="text-center text-gray-400 italic py-4">Sin datos</div>
-                    </div>
-                </div>
-
-                <!-- TABLA PASIVOS -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
-                    <div class="bg-orange-50 border-b border-orange-100 px-3 py-2 flex justify-between items-center">
-                        <h3 class="text-[10px] font-black text-orange-500 uppercase tracking-widest flex items-center"><span class="material-symbols-outlined text-[14px] mr-1">account_balance</span> Pasivos por Tercero</h3>
-                    </div>
-                    <div class="px-2 py-1.5 bg-gray-50/80 border-b border-gray-100 flex text-[8px] font-black text-gray-400 uppercase tracking-widest">
-                        <div class="w-1/3 pl-1">Pasivo</div>
-                        <div class="w-1/4 text-right">Media (Mes)</div>
-                        <div class="w-1/4 text-right pr-2">Total</div>
-                        <div class="w-1/6 text-right pr-1">% Tipo</div>
-                    </div>
-                    <div class="p-1 overflow-y-auto max-h-56 text-[10px]">
-                        <div v-for="row in dashboardTables.pasivos" :key="row.label" class="flex items-center py-1.5 border-b border-gray-50 last:border-0 hover:bg-gray-50 px-2">
-                            <span class="font-bold text-gray-600 truncate pr-2 w-1/3" :title="row.label">{{ row.label }}</span>
-                            <span class="font-mono text-gray-500 text-right w-1/4 pr-2">$ {{ formatInput(row.promedio) }}</span>
-                            <div class="flex flex-col items-end w-1/4 pr-2">
-                                <span class="font-black text-tema-3">$ {{ formatInput(row.curr) }}</span>
-                                <span class="text-[8px] font-bold flex items-center" :class="getVarColor('pasivo', row.diff)">
-                                    <span class="material-symbols-outlined text-[10px] mr-0.5">{{ getVarIcon(row.diff) }}</span>
-                                    {{ formatAbs(row.diff) }} ({{ formatPct(row.pct) }})
-                                </span>
-                            </div>
-                            <div class="w-1/6 flex items-center justify-end gap-1.5">
-                                <span class="font-bold text-[9px] text-gray-500 w-8 text-right">{{ row.pctTotal.toFixed(1) }}%</span>
-                                <div class="w-10 h-1.5 bg-gray-200 rounded-full overflow-hidden hidden sm:block">
-                                    <div class="h-full rounded-full bg-orange-400" :style="{ width: Math.min(row.pctTotal, 100) + '%' }"></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div v-if="dashboardTables.pasivos.length === 0" class="text-center text-gray-400 italic py-4">Sin datos</div>
-                    </div>
-                </div>
-
+                    <p class="text-[9px] text-gray-500 leading-snug hidden xl:block">Indicador del período · {{ dashboardData.compareText }}</p>
+                </article>
             </div>
 
-            <!-- BLOQUE 3: GRÁFICAS -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-                <!-- GRÁFICA P&G -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-                    <h3 class="text-[11px] font-black uppercase text-tema-1 mb-2">Ingresos, Gastos y Utilidad (Últimos 12 Meses)</h3>
-                    <div class="relative h-64 md:h-72 w-full">
-                        <canvas id="chartPyg"></canvas>
+            <!-- BLOQUE 3: EVOLUCION FINANCIERA SVG - 12 MESES MOVILES -->
+            <section class="mb-4" aria-label="Evolución financiera">
+              <div class="mb-2 flex items-center justify-between gap-2 flex-wrap">
+                <h3 class="text-[11px] font-black uppercase tracking-wider text-tema-1">Evolución financiera</h3>
+                <span class="text-[10px] text-gray-500">12 meses móviles · Hover o toque para consultar</span>
+              </div>
+              <div class="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                <!-- Gráfica 1: barras superpuestas, barra mayor detrás; margen mensual en línea -->
+                <article class="min-w-0 bg-white rounded-xl border border-gray-200 p-2.5 sm:p-3 shadow-sm relative">
+                  <h4 class="text-xs font-black text-tema-1">Ingresos, gastos y margen mensual</h4>
+                  <p class="text-[10px] text-gray-500 mb-1">Comparación de importes y rentabilidad · COP / %</p>
+                  <div class="flex flex-wrap gap-3 text-[10px] text-gray-600 mb-1">
+                    <span><b style="color:#0FA49A">●</b> Ingresos</span>
+                    <span><b style="color:#E35D65">●</b> Gastos</span>
+                    <span><b style="color:#008DAB">━</b> Margen (%)</span>
+                  </div>
+                  <div class="overflow-x-auto" ref="dashboardEconomicScroll" @click.self="dashboardSvgFocus=null">
+                    <svg viewBox="0 0 900 350" class="block w-full min-w-[750px]" role="img" aria-label="Barras superpuestas de ingresos y gastos con línea de margen mensual">
+                      <g v-for="tick in dashboardSvgV3.economic.moneyTicks" :key="'em'+tick.value">
+                        <line x1="54" :y1="tick.y" x2="858" :y2="tick.y" stroke="#E5ECF4" stroke-dasharray="3 4"/>
+                        <text x="49" :y="tick.y+3" text-anchor="end" font-size="9" fill="#8290A2">{{ dashboardSvgCompact(tick.value) }}</text>
+                      </g>
+                      <line x1="54" :y1="dashboardSvgV3.economic.zeroY" x2="858" :y2="dashboardSvgV3.economic.zeroY" stroke="#AFC0D1" stroke-width="1"/>
+                      <g v-for="(p,i) in dashboardSvgV3.economic.points" :key="'economic'+i" tabindex="0" role="button"
+                        :aria-label="p.label+' ingresos '+formatInput(p.ingresos)+' gastos '+formatInput(p.gastos)+' margen '+p.margen.toFixed(1)+' por ciento'"
+                        @mouseenter="dashboardSvgFocus={chart:'economic',index:i}" @mouseleave="dashboardSvgFocus=null"
+                        @focus="dashboardSvgFocus={chart:'economic',index:i}" @blur="dashboardSvgFocus=null"
+                        @click="dashboardSvgToggle('economic',i)" @keydown.enter.prevent="dashboardSvgToggle('economic',i)">
+                        <rect :x="p.x-30" y="12" width="60" height="308" rx="5" fill="#EAF2FF"
+                          :opacity="dashboardSvgFocus && dashboardSvgFocus.chart==='economic' && dashboardSvgFocus.index===i ? 1 : 0"/>
+                        <rect :x="p.x-18" :y="p.backY" width="36" :height="p.backH" rx="3" :fill="p.backColor"/>
+                        <rect :x="p.x-17" :y="p.frontY" width="34" :height="p.frontH" rx="3" :fill="p.frontColor"/>
+                        <rect :x="p.x-29" :y="p.backLabelY-10" width="58" height="15" rx="4" fill="#EDF2F8"/>
+                        <text :x="p.x" :y="p.backLabelY+1" text-anchor="middle" font-size="9" font-weight="700" fill="#526A86">{{ dashboardSvgCompact(p.backValue) }}</text>
+                        <rect :x="p.x-29" :y="p.frontLabelY-10" width="58" height="15" rx="4" fill="#F1F4FC"/>
+                        <text :x="p.x" :y="p.frontLabelY+1" text-anchor="middle" font-size="9" font-weight="800" :fill="p.frontTextColor">{{ dashboardSvgCompact(p.frontValue) }}</text>
+                        <text :x="p.x" y="337" text-anchor="middle" font-size="9" fill="#526A86">{{ p.label }}</text>
+                      </g>
+                      <path :d="dashboardSvgV3.economic.marginPath" fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" pointer-events="none"/>
+                      <path :d="dashboardSvgV3.economic.marginPath" fill="none" stroke="#00A6B2" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" pointer-events="none"/>
+                      <g v-for="(p,i) in dashboardSvgV3.economic.points" :key="'marginlabel'+i" pointer-events="none">
+                        <circle :cx="p.x" :cy="p.marginY" r="3.4" fill="#00A6B2" stroke="white" stroke-width="1.2"/>
+                        <rect :x="p.x-22" :y="p.marginLabelY" width="44" height="18" rx="4" fill="#073B91"/>
+                        <text :x="p.x" :y="p.marginLabelY+12" text-anchor="middle" font-size="10" font-weight="800" fill="white">{{ p.margen.toFixed(1) }}%</text>
+                      </g>
+                    </svg>
+                  </div>
+                  <div v-if="dashboardSvgFocus && dashboardSvgFocus.chart==='economic'" class="absolute top-14 right-3 z-20 bg-tema-1 text-white text-[11px] p-3 rounded-lg shadow-lg pointer-events-none">
+                    <b>{{ dashboardSvgV3.economic.points[dashboardSvgFocus.index].label }}</b>
+                    <div>Ingresos: $ {{ formatInput(dashboardSvgV3.economic.points[dashboardSvgFocus.index].ingresos) }}</div>
+                    <div>Gastos: $ {{ formatInput(dashboardSvgV3.economic.points[dashboardSvgFocus.index].gastos) }}</div>
+                    <div>Utilidad: $ {{ formatInput(dashboardSvgV3.economic.points[dashboardSvgFocus.index].utilidad) }}</div>
+                    <div>Margen: {{ dashboardSvgV3.economic.points[dashboardSvgFocus.index].margen.toFixed(1) }}%</div>
+                  </div>
+                </article>
+                <!-- Gráfica 2: movimientos netos de pasivos, saldo acumulado y DSR mensual -->
+                <article class="min-w-0 bg-white rounded-xl border border-gray-200 p-2.5 sm:p-3 shadow-sm relative">
+                  <h4 class="text-xs font-black text-tema-1">Movimiento, saldo y DSR de pasivos</h4>
+                  <p class="text-[10px] text-gray-500 mb-1">Movimiento mensual y saldo acumulado · DSR sobre la línea</p>
+                  <div class="flex flex-wrap gap-3 text-[10px] text-gray-600 mb-1">
+                    <span><b style="color:#1EAA67">●</b> Movimiento positivo</span>
+                    <span><b style="color:#E35D65">●</b> Movimiento negativo</span>
+                    <span><b style="color:#1973D2">━</b> Saldo</span>
+                    <span><b style="color:#073B91">■</b> DSR</span>
+                  </div>
+                  <div class="overflow-x-auto" ref="dashboardDebtScroll" @click.self="dashboardSvgFocus=null">
+                    <svg viewBox="0 0 900 350" class="block w-full min-w-[750px]" role="img" aria-label="Movimiento neto de pasivos, saldo acumulado y DSR mensual">
+                      <g v-for="tick in dashboardSvgV3.debt.balanceTicks" :key="'db'+tick.value">
+                        <line x1="54" :y1="tick.y" x2="858" :y2="tick.y" stroke="#E5ECF4" stroke-dasharray="3 4"/>
+                        <text x="49" :y="tick.y+3" text-anchor="end" font-size="9" fill="#8290A2">{{ dashboardSvgCompact(tick.value) }}</text>
+                      </g>
+                      <line x1="54" :y1="dashboardSvgV3.debt.zeroY" x2="858" :y2="dashboardSvgV3.debt.zeroY" stroke="#AFC0D1" stroke-dasharray="4 3"/>
+                      <g v-for="(p,i) in dashboardSvgV3.debt.points" :key="'debtnew'+i" tabindex="0" role="button"
+                        :aria-label="p.label+' movimiento '+formatInput(p.mov)+' saldo '+formatInput(p.saldo)+' DSR '+p.dsr.toFixed(1)+' por ciento'"
+                        @mouseenter="dashboardSvgFocus={chart:'debt',index:i}" @mouseleave="dashboardSvgFocus=null"
+                        @focus="dashboardSvgFocus={chart:'debt',index:i}" @blur="dashboardSvgFocus=null"
+                        @click="dashboardSvgToggle('debt',i)" @keydown.enter.prevent="dashboardSvgToggle('debt',i)">
+                        <rect :x="p.x-30" y="12" width="60" height="308" rx="5" fill="#EAF2FF"
+                          :opacity="dashboardSvgFocus && dashboardSvgFocus.chart==='debt' && dashboardSvgFocus.index===i ? 1 : 0"/>
+                        <rect :x="p.x-13" :y="p.movY" width="26" :height="p.movH" rx="3" :fill="p.mov >= 0 ? '#1EAA67' : '#E35D65'"/>
+                        <text :x="p.x" y="337" text-anchor="middle" font-size="9" fill="#526A86">{{ p.label }}</text>
+                      </g>
+                      <path :d="dashboardSvgV3.debt.saldoPath" fill="none" stroke="white" stroke-width="5" stroke-linejoin="round" pointer-events="none"/>
+                      <path :d="dashboardSvgV3.debt.saldoPath" fill="none" stroke="#1973D2" stroke-width="2.8" stroke-linejoin="round" pointer-events="none"/>
+                      <g v-for="(p,i) in dashboardSvgV3.debt.points" :key="'dsr'+i" pointer-events="none">
+                        <circle :cx="p.x" :cy="p.saldoY" r="3.5" fill="#1973D2" stroke="white" stroke-width="1.2"/>
+                        <rect :x="p.x-25" :y="p.dsrLabelY" width="50" height="18" rx="4" fill="#073B91"/>
+                        <text :x="p.x" :y="p.dsrLabelY+12" text-anchor="middle" font-size="10" font-weight="800" fill="white">{{ p.dsr.toFixed(1) }}%</text>
+                      </g>
+                    </svg>
+                  </div>
+                  <div v-if="dashboardSvgFocus && dashboardSvgFocus.chart==='debt'" class="absolute top-14 right-3 z-20 bg-tema-1 text-white text-[11px] p-3 rounded-lg shadow-lg pointer-events-none">
+                    <b>{{ dashboardSvgV3.debt.points[dashboardSvgFocus.index].label }}</b>
+                    <div>Movimiento: $ {{ formatInput(dashboardSvgV3.debt.points[dashboardSvgFocus.index].mov) }}</div>
+                    <div>Saldo acumulado: $ {{ formatInput(dashboardSvgV3.debt.points[dashboardSvgFocus.index].saldo) }}</div>
+                    <div>Servicio de deuda: $ {{ formatInput(dashboardSvgV3.debt.points[dashboardSvgFocus.index].servicio) }}</div>
+                    <div>DSR: {{ dashboardSvgV3.debt.points[dashboardSvgFocus.index].dsr.toFixed(1) }}%</div>
+                  </div>
+                </article>
+              </div>
+            </section>
+
+            <!-- BLOQUE 2: COMPOSICION FINANCIERA COMPACTA -->
+            <section class="mb-4" aria-label="Composición financiera">
+              <div class="mb-2 flex items-center justify-between gap-2 flex-wrap">
+                <h3 class="text-[11px] font-black uppercase tracking-wider text-tema-1">Composición financiera</h3>
+                <span class="text-[10px] text-gray-500">Importes, media mensual y variación · participación sobre el tipo</span>
+              </div>
+              <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                <article v-for="cfg in [{key:'gastos',title:'Gastos por grupo',kind:'gasto',accent:'#DC5B64',background:'#FFF2F3',period:'Flujo del período'}, {key:'ingresos',title:'Ingresos por categoría',kind:'ingreso',accent:'#13A56A',background:'#EEFBF5',period:'Flujo del período'}, {key:'activos',title:'Ahorro e inversión por tercero',kind:'activo',accent:'#3999D6',background:'#EFF7FF',period:'Saldo al cierre'}, {key:'pasivos',title:'Pasivos por tercero',kind:'pasivo',accent:'#E58A37',background:'#FFF7EF',period:'Saldo al cierre'}]"
+                  :key="cfg.key" class="min-w-0 bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                  <header class="px-3 py-2 flex items-center justify-between gap-2" :style="{background:cfg.background,borderBottom:'1px solid #E8EDF4'}">
+                    <h4 class="text-[11px] font-black uppercase tracking-wide" :style="{color:cfg.accent}">{{ cfg.title }}</h4>
+                    <span class="text-[9px] text-gray-500 whitespace-nowrap">{{ cfg.period }}</span>
+                  </header>
+                  <div class="max-h-72 overflow-y-auto divide-y divide-gray-100">
+                    <div v-for="row in dashboardTables[cfg.key]" :key="row.label" class="px-2.5 py-1.5 hover:bg-gray-50 min-w-0">
+                      <div class="flex items-start justify-between gap-2">
+                        <div class="min-w-0 flex-1">
+                          <div class="text-[10px] sm:text-[11px] font-bold text-gray-700 break-words" :title="row.label">{{ row.label }}</div>
+                          <div class="text-[9px] text-gray-500 mt-0.5">Media/mes: $ {{ formatInput(row.promedio) }}</div>
+                        </div>
+                        <div class="text-right shrink-0">
+                          <div class="text-[11px] sm:text-[12px] font-black text-tema-1">$ {{ formatInput(row.curr) }}</div>
+                          <div class="text-[9px] font-bold flex items-center justify-end" :class="getVarColor(cfg.kind,row.diff)">
+                            <span class="material-symbols-outlined text-[12px]">{{ getVarIcon(row.diff) }}</span>
+                            {{ formatAbs(row.diff) }} ({{ formatPct(row.pct) }})
+                          </div>
+                        </div>
+                      </div>
+                      <div class="flex items-center gap-2 mt-1">
+                        <div class="h-1 bg-gray-100 rounded-full flex-1 overflow-hidden relative">
+                          <div class="h-full rounded-full" :style="{background:cfg.accent,width:Math.max(0,Math.min(100,row.pctTotal))+'%'}"></div>
+                        </div>
+                        <span class="text-[10px] font-bold text-gray-600 w-14 text-right">{{ row.pctTotal.toFixed(1) }}%</span>
+                      </div>
+                      <p v-if="row.curr < 0 || row.pctTotal > 100" class="text-[9px] text-gray-500 mt-1">Valor con signo conservado; barra limitada visualmente al 100 %.</p>
                     </div>
-                </div>
-                
-                <!-- GRÁFICA PASIVOS -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-                    <h3 class="text-[11px] font-black uppercase text-tema-1 mb-2">Evolución de Pasivos (Últimos 12 Meses)</h3>
-                    <div class="relative h-64 md:h-72 w-full">
-                        <canvas id="chartPasivos"></canvas>
-                    </div>
-                </div>
-            </div>
+                    <div v-if="!dashboardTables[cfg.key].length" class="text-center text-xs text-gray-400 py-6">Sin datos</div>
+                  </div>
+                </article>
+              </div>
+            </section>
 
             <!-- BLOQUE 4: TABLA DE ANÁLISIS DETALLADO -->
             <div class="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col mb-4">
